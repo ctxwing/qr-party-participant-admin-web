@@ -38,11 +38,12 @@ supabase link --project-ref [PROJECT_ID]
 
 ### 3.1 네트워크 제약 사항 (IPv6 관련)
 - **증상**: `connect: cannot assign requested address` 또는 `connection timeout` 에러 발생.
-- **원인**: Supabase 기본 호스트(`db.[ref].supabase.co`)는 IPv6 전용(AAAA 레코드)인 경우가 많아, IPv4 전용 환경(현재 개발 서버 등)에서 접속 불가.
+- **원인**: Supabase 기본 호스트(`db.[ref].supabase.co`)는 IPv6 전용(AAAA 레코드)이라 IPv4 전용 환경에서 접속 불가.
 - **해결 방안 (기술적 해결)**: 
-  1. **Pooler 호스트 사용**: IPv4 주소를 지원하는 커넥션 풀러 호스트(`aws-0-ap-northeast-2.pooler.supabase.com`)를 사용합니다.
-  2. **포트 설정**: 동일하게 `5432` 포트를 사용하며, 연결 문자열의 호스트 부분만 교체합니다.
-  3. **비밀번호 인코딩**: 비밀번호에 `@` 등 특수문자가 포함된 경우 반드시 `%40` 등으로 인코딩해야 합니다.
+  1. **Pooler 호스트 사용**: IPv4를 지원하는 커넥션 풀러 호스트(`aws-0-ap-northeast-2.pooler.supabase.com`)를 사용합니다. (테스트 결과 연결 성공 확인)
+  2. **사용자 아이디 형식 (중요)**: 일부 환경에서 SNI 인식이 안 될 경우, 아이디를 `postgres.[PROJECT_REF]` 형식으로 사용해야 합니다.
+     - 예: `postgresql://postgres.hlbgedbgycamzvbbykdc:[PASSWORD]@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres`
+  3. **비밀번호 인코딩**: 비밀번호 내 `@` 등은 반드시 `%40`으로 인코딩해야 합니다.
 
 ### 3.2 닉네임/신청상태 Full Spec 적용
 현재 프로젝트의 요구사항(닉네임 3회 제한, 1/2차 신청 상태 관리)을 반영하기 위해 `src/scripts/migration_full_spec.sql` 파일을 CLI를 통해 실행하여 DB 구조를 고도화하였습니다.
