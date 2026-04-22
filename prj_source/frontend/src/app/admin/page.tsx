@@ -201,12 +201,14 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       field: 'nickname', 
       headerName: '닉네임', 
       flex: 1,
-      cellRenderer: (params: any) => (
-        <div className="flex flex-col py-1">
-          <span className="font-bold">{params.value}</span>
-          <span className="text-[9px] opacity-30 font-mono">{params.data.id.split('-')[0]}...</span>
-        </div>
-      )
+      cellRenderer: (params: any) => <span className="font-bold">{params.value}</span>
+    },
+    { 
+      field: 'id', 
+      headerName: 'ID', 
+      width: 80,
+      cellRenderer: (params: any) => <span className="text-[10px] opacity-30 font-mono">{params.value.split('-')[0]}</span>,
+      filter: false
     },
     { 
       field: 'created_at', 
