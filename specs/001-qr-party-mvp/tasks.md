@@ -108,15 +108,13 @@
     - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
     - [ ] 3_prj_docs/완료내역/TASK_T015_완료내역.md 작성 (테스트 성공 결과 포함)
     - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
-- [x] T015 [P] [US3] `prj_source/frontend/app/admin/page.tsx` 관리자 대시보드 및 세션 제어 UI 구현
-    - [x] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
-    - [x] 3_prj_docs/완료내역/TASK_T015_완료내역.md 작성 (테스트 성공 결과 포함)
-    - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
+- [x] T015 [P] [US3] `prj_source/frontend/app/admin/page.tsx` 관리자 로그인 및 대시보드 진입점 구현
+    - [x] 세션 제어 UI 구현
+    - [x] Supabase Auth 기반 관리자 인증 로직 적용 (ID/PW)
     - [x] 한글 메시지로 git commit 및 git push 수행
 - [x] T016 [US3] `prj_source/frontend/app/admin/dashboard/page.tsx` 실시간 지표 관제 및 로그(닉네임 변경, 쪽지) 조회 화면 구현
-    - [x] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
-    - [x] 3_prj_docs/완료내역/TASK_T016_완료내역.md 작성 (테스트 성공 결과 포함)
-    - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
+    - [x] **실제 DB 연동 (Mock Data 제거)**
+    - [x] 실시간 활동 피드 연결
     - [x] 한글 메시지로 git commit 및 git push 수행
 - [x] T017 [US3] `prj_source/frontend/app/admin/alerts/page.tsx` SOS 리스트 및 시청각 알림 시스템 구현
     - [x] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)

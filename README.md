@@ -1,177 +1,92 @@
-# Supabase CLI
+# 💘 QR 기반 파티 모바일웹 MVP (QR Party)
 
-[![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=develop)](https://coveralls.io/github/supabase/cli?branch=develop) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)
-](https://gitlab.com/sweatybridge/setup-cli/-/pipelines)
+파티 현장에서 QR 코드를 통해 즉시 접속하여 참여자 간 상호작용(쪽지, 큐피트, 호감도)을 즐길 수 있는 모바일 전용 웹 서비스와 운영자를 위한 통합 관리 시스템입니다.
 
-[Supabase](https://supabase.io) is an open source Firebase alternative. We're building the features of Firebase using enterprise-grade open source tools.
+---
 
-This repository contains all the functionality for Supabase CLI.
+## 🚀 프로젝트 개요
+- **목적**: 파티 현장의 분위기를 고조시키고 참여자 간의 매칭 및 소통을 실시간으로 지원.
+- **주요 타겟**: 파티 참가자 (모바일웹), 파티 운영진 (관리자 대시보드).
+- **핵심 가치**: 익명 기반의 빠른 참여, 실시간 상호작용, 긴급 SOS 대응.
 
-- [x] Running Supabase locally
-- [x] Managing database migrations
-- [x] Creating and deploying Supabase Functions
-- [x] Generating types directly from your database schema
-- [x] Making authenticated HTTP requests to [Management API](https://supabase.com/docs/reference/api/introduction)
+---
 
-## Getting started
+## 🛠 기술 스택
+- **Runtime**: Bun
+- **Framework**: Next.js 16.2.1 (App Router)
+- **Database/BaaS**: Supabase (PostgreSQL, Auth, Realtime)
+- **Styling**: Tailwind CSS, shadcn/ui
+- **Animation**: React Bits (Ranking UI)
+- **State Management**: React Hooks, Supabase Realtime Subscription
 
-### Install the CLI
+---
 
-Available via [NPM](https://www.npmjs.com) as dev dependency. To install:
+## 📱 주요 기능
 
-```bash
-npm i supabase --save-dev
-```
+### 1. 참여자 (Mobile Web)
+- **익명 참여**: QR 스캔 시 별도 가입 없이 즉시 접속.
+- **닉네임 설정**: 닉네임 등록 및 변경 (최대 3회 제한).
+- **내 현황판**: 받은 쪽지, 큐피트, 호감도, 알림 개수 실시간 확인.
+- **상호작용**:
+  - **쪽지**: 타 참여자에게 익명 쪽지 발송.
+  - **큐피트**: 호감 가는 상대에게 매칭 제안 (기본 2회).
+  - **호감도**: 가벼운 관심 표시 (기본 3회).
+- **랭킹 보드**: 실시간 호감도 순위 확인 (`/ranking`).
+- **현장 요청**: 노래 신청 및 긴급 SOS 요청 (플로팅 버튼).
 
-When installing with yarn 4, you need to disable experimental fetch with the following nodejs config.
+### 2. 관리자 (Admin Console)
+- **세션 제어**: 파티 시작 및 종료 시간 설정, 남은 시간 실시간 동기화.
+- **참여자 관리**: 1/2차 신청 상태 관리, 2차 미신청자 필터링, 잔여 횟수(큐피트/호감도) 수동 조정.
+- **실시간 모니터링**: 전체 쪽지 내용 및 참여자 활동 로그 실시간 관제.
+- **긴급 대응**: SOS 요청 발생 시 사운드 알림 및 즉각 해결 기능.
 
-```
-NODE_OPTIONS=--no-experimental-fetch yarn add supabase
-```
+---
 
-> **Note**
-For Bun versions below v1.0.17, you must add `supabase` as a [trusted dependency](https://bun.sh/guides/install/trusted) before running `bun add -D supabase`.
+## 🔑 접속 및 계정 정보
 
-<details>
-  <summary><b>macOS</b></summary>
+### 접속 경로
+- **참여자 메인**: `http://localhost:58100/`
+- **관리자 페이지**: `http://localhost:58100/admin`
+- **실시간 랭킹**: `http://localhost:58100/ranking`
 
-  Available via [Homebrew](https://brew.sh). To install:
+### 관리자 로그인 정보
+- **이메일**: `admin@example.com`
+- **비밀번호**: `admin1234`
+> [!NOTE]
+> 해당 계정 정보는 Supabase Auth에 사전에 등록되어 있어야 합니다.
 
-  ```sh
-  brew install supabase/tap/supabase
-  ```
+---
 
-  To install the beta release channel:
-  
-  ```sh
-  brew install supabase/tap/supabase-beta
-  brew link --overwrite supabase-beta
-  ```
-  
-  To upgrade:
+## 🗄️ 데이터베이스 (Supabase)
+프로젝트는 다음과 같은 주요 테이블로 구성됩니다:
+- `party_sessions`: 파티 상태 및 타이머 정보.
+- `participants`: 참여자 프로필 및 신청 상태, 잔여 횟수.
+- `messages`: 익명 쪽지 데이터.
+- `interactions`: 큐피트 및 호감도 로그.
+- `alerts`: SOS 요청 및 노래 신청 내역.
 
-  ```sh
-  brew upgrade supabase
-  ```
-</details>
+---
 
-<details>
-  <summary><b>Windows</b></summary>
+## ⚙️ 실행 방법
 
-  Available via [Scoop](https://scoop.sh). To install:
+1. **의존성 설치**
+   ```bash
+   bun install
+   ```
 
-  ```powershell
-  scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-  scoop install supabase
-  ```
+2. **환경 변수 설정**
+   `.env.local` 파일을 생성하고 Supabase URL 및 Key를 입력합니다.
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+   ```
 
-  To upgrade:
+3. **개발 서버 실행**
+   ```bash
+   bun run dev
+   ```
 
-  ```powershell
-  scoop update supabase
-  ```
-</details>
+---
 
-<details>
-  <summary><b>Linux</b></summary>
-
-  Available via [Homebrew](https://brew.sh) and Linux packages.
-
-  #### via Homebrew
-
-  To install:
-
-  ```sh
-  brew install supabase/tap/supabase
-  ```
-
-  To upgrade:
-
-  ```sh
-  brew upgrade supabase
-  ```
-
-  #### via Linux packages
-
-  Linux packages are provided in [Releases](https://github.com/supabase/cli/releases). To install, download the `.apk`/`.deb`/`.rpm`/`.pkg.tar.zst` file depending on your package manager and run the respective commands.
-
-  ```sh
-  sudo apk add --allow-untrusted <...>.apk
-  ```
-
-  ```sh
-  sudo dpkg -i <...>.deb
-  ```
-
-  ```sh
-  sudo rpm -i <...>.rpm
-  ```
-
-  ```sh
-  sudo pacman -U <...>.pkg.tar.zst
-  ```
-</details>
-
-<details>
-  <summary><b>Other Platforms</b></summary>
-
-  You can also install the CLI via [go modules](https://go.dev/ref/mod#go-install) without the help of package managers.
-
-  ```sh
-  go install github.com/supabase/cli@latest
-  ```
-
-  Add a symlink to the binary in `$PATH` for easier access:
-
-  ```sh
-  ln -s "$(go env GOPATH)/bin/cli" /usr/bin/supabase
-  ```
-
-  This works on other non-standard Linux distros.
-</details>
-
-<details>
-  <summary><b>Community Maintained Packages</b></summary>
-
-  Available via [pkgx](https://pkgx.sh/). Package script [here](https://github.com/pkgxdev/pantry/blob/main/projects/supabase.com/cli/package.yml).
-  To install in your working directory:
-
-  ```bash
-  pkgx install supabase
-  ```
-
-  Available via [Nixpkgs](https://nixos.org/). Package script [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/supabase-cli/default.nix).
-</details>
-
-### Run the CLI
-
-```bash
-supabase bootstrap
-```
-
-Or using npx:
-
-```bash
-npx supabase bootstrap
-```
-
-The bootstrap command will guide you through the process of setting up a Supabase project using one of the [starter](https://github.com/supabase-community/supabase-samples/blob/main/samples.json) templates.
-
-## Docs
-
-Command & config reference can be found [here](https://supabase.com/docs/reference/cli/about).
-
-## Breaking changes
-
-We follow semantic versioning for changes that directly impact CLI commands, flags, and configurations.
-
-However, due to dependencies on other service images, we cannot guarantee that schema migrations, seed.sql, and generated types will always work for the same CLI major version. If you need such guarantees, we encourage you to pin a specific version of CLI in package.json.
-
-## Developing
-
-To run from source:
-
-```sh
-# Go >= 1.22
-go run . help
-```
+## 📝 구현 내역 및 갭 분석
+- 상세 구현 현황은 [3_prj_docs/03_완료내역/260422-1850-requirement-gap-analysis.md](3_prj_docs/03_완료내역/260422-1850-requirement-gap-analysis.md)에서 확인하실 수 있습니다.

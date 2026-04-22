@@ -149,6 +149,10 @@ export default function DashboardPage() {
     }
   }
 
+  const [songTitle, setSongTitle] = useState('')
+
+  const [sosMessage, setSosMessage] = useState('')
+
   const handleSOS = async () => {
     triggerHaptic()
     if (!participant?.id) return
@@ -159,11 +163,31 @@ export default function DashboardPage() {
       type: 'SOS',
       participant_id: participant.id,
       session_id: session?.id,
-      message: `${participant.nickname}님이 도움을 요청했습니다!`
+      message: sosMessage.trim() ? `🚨 SOS: ${sosMessage}` : `🚨 ${participant.nickname}님이 도움을 요청했습니다!`
     })
 
     if (!error) {
       toast.error('관리자에게 SOS 요청을 보냈습니다!')
+      setSosMessage('')
+    }
+  }
+
+  const handleSongRequest = async () => {
+    triggerHaptic()
+    if (!participant?.id) return
+
+    const { data: session } = await supabase.from('party_sessions').select('id').eq('status', 'ONGOING').single()
+    
+    const { error } = await supabase.from('alerts').insert({
+      type: 'MUSIC',
+      participant_id: participant.id,
+      session_id: session?.id,
+      message: songTitle.trim() ? `🎵 노래 요청: ${songTitle}` : `🎵 노래 틀어주세요!`
+    })
+
+    if (!error) {
+      toast.success('노래 요청을 보냈습니다!')
+      setSongTitle('')
     }
   }
 
@@ -183,8 +207,17 @@ export default function DashboardPage() {
               </span>
             </div>
           </div>
-          <div className="bg-primary/10 px-3 py-1 rounded-full text-xs font-bold text-primary animate-pulse">
-            LIVE {participants.length + 1}
+          <div className="flex bg-primary/10 px-3 py-1 rounded-full text-xs font-bold text-primary animate-pulse items-center gap-2">
+            <span>LIVE {participants.length + 1}</span>
+            <button 
+              onClick={() => {
+                localStorage.clear()
+                window.location.href = '/'
+              }}
+              className="ml-2 text-[10px] opacity-60 hover:opacity-100 underline"
+            >
+              EXIT
+            </button>
           </div>
         </div>
         
@@ -217,21 +250,18 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 gap-3">
             {participants.map((p) => (
               <Dialog key={p.id}>
-                <DialogTrigger 
-                  nativeButton={false}
-                  render={
-                    <Card 
-                      className="glass border-none hover:bg-white/10 transition-all cursor-pointer active:scale-95 group"
-                      onClick={() => setSelectedUser(p)}
-                    />
-                  }
-                >
-                  <CardContent className="p-4 flex flex-col items-center gap-2">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-bold text-xl group-hover:scale-110 transition-transform shadow-lg">
-                      {p.nickname[0]}
-                    </div>
-                    <p className="font-bold text-sm truncate w-full text-center">{p.nickname}</p>
-                  </CardContent>
+                <DialogTrigger asChild>
+                  <Card 
+                    className="glass border-none hover:bg-white/10 transition-all cursor-pointer active:scale-95 group"
+                    onClick={() => setSelectedUser(p)}
+                  >
+                    <CardContent className="p-4 flex flex-col items-center gap-2">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-bold text-xl group-hover:scale-110 transition-transform shadow-lg">
+                        {p.nickname[0]}
+                      </div>
+                      <p className="font-bold text-sm truncate w-full text-center">{p.nickname}</p>
+                    </CardContent>
+                  </Card>
                 </DialogTrigger>
                 <DialogContent className="glass border-none max-w-[90%] rounded-2xl">
                   <DialogHeader>
@@ -284,15 +314,58 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-8 left-0 right-0 flex justify-center gap-4 px-6 pointer-events-none">
-        <Button 
-          size="lg" 
-          className="rounded-full shadow-2xl bg-sos hover:bg-sos/90 pointer-events-auto h-14 px-6 gap-2"
-          onClick={handleSOS}
-        >
-          <AlertTriangle className="w-5 h-5 animate-pulse" />
-          <span className="font-bold">SOS</span>
-        </Button>
+      <div className="fixed bottom-8 left-0 right-0 flex justify-center gap-2 px-6 pointer-events-none">
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button 
+              className="rounded-full shadow-2xl bg-sos hover:bg-sos/90 pointer-events-auto h-14 w-14 p-0 flex items-center justify-center cursor-pointer"
+              onClick={triggerHaptic}
+            >
+              <AlertTriangle className="w-5 h-5 animate-pulse text-white" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="glass border-none max-w-[90%] rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-center text-xl font-bold">도움이 필요하신가요? 🚨</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <Input 
+                placeholder="요청 내용을 입력하세요 (생략 가능)" 
+                value={sosMessage}
+                onChange={(e) => setSosMessage(e.target.value)}
+                className="glass border-none"
+              />
+              <Button variant="destructive" className="w-full font-bold h-12" onClick={handleSOS}>SOS 요청하기</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button 
+              className="rounded-full shadow-2xl bg-blue-500 hover:bg-blue-600 pointer-events-auto h-14 px-6 gap-2 flex items-center justify-center cursor-pointer"
+              onClick={triggerHaptic}
+            >
+              <Zap className="w-5 h-5 fill-current text-white" />
+              <span className="font-bold uppercase tracking-tight text-white">Music</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="glass border-none max-w-[90%] rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-center text-xl font-bold">노래를 신청하시겠어요? 🎵</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <Input 
+                placeholder="곡 제목을 입력하세요 (생략 가능)" 
+                value={songTitle}
+                onChange={(e) => setSongTitle(e.target.value)}
+                className="glass border-none"
+              />
+              <Button className="w-full font-bold h-12" onClick={handleSongRequest}>신청하기</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <Link href="/ranking" className="pointer-events-auto">
           <Button 
             size="lg" 
@@ -300,7 +373,7 @@ export default function DashboardPage() {
             onClick={triggerHaptic}
           >
             <Award className="w-5 h-5" />
-            <span className="font-bold">RANKING</span>
+            <span className="font-bold">RANK</span>
           </Button>
         </Link>
       </div>

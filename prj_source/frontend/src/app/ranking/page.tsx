@@ -2,35 +2,50 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, Reorder } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, Award, Heart } from 'lucide-react'
-
-// Mock Data
-const initialRankings = [
-  { id: '1', nickname: '상큼체리', score: 1250 },
-  { id: '2', nickname: '젠틀맨', score: 980 },
-  { id: '4', nickname: '미소천사', score: 850 },
-  { id: '3', nickname: '춤추는곰', score: 420 },
-]
+import { createClient } from '@/lib/supabase'
 
 export default function RankingPage() {
   const router = useRouter()
-  const [items, setItems] = useState(initialRankings)
+  const [items, setItems] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
 
-  // 실시간 순위 변동 시뮬레이션 (T014에서 실제 연동 예정)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setItems(prev => {
-        const next = [...prev]
-        const idx = Math.floor(Math.random() * next.length)
-        next[idx] = { ...next[idx], score: next[idx].score + Math.floor(Math.random() * 50) }
-        return next.sort((a, b) => b.score - a.score)
+  const fetchRankings = async () => {
+    try {
+      const { data: participants } = await supabase.from('participants').select('id, nickname')
+      const { data: interactions } = await supabase.from('interactions').select('receiver_id, weight')
+
+      if (!participants) return
+
+      const rankings = participants.map(p => {
+        const score = interactions
+          ?.filter(i => i.receiver_id === p.id)
+          ?.reduce((acc, curr) => acc + (curr.weight || 1), 0) || 0
+        return { id: p.id, nickname: p.nickname, score }
       })
-    }, 5000)
-    return () => clearInterval(interval)
+
+      setItems(rankings.sort((a, b) => b.score - a.score))
+    } catch (error) {
+      console.error('랭킹 집계 에러:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchRankings()
+    const channel = supabase.channel('ranking-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'interactions' }, fetchRankings)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, fetchRankings)
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
   }, [])
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold">순위 집계 중...</div>
 
   return (
     <div className="min-h-screen bg-background p-4 flex flex-col items-center">
@@ -42,62 +57,46 @@ export default function RankingPage() {
           <h1 className="text-3xl font-bold">인기 랭킹</h1>
         </div>
 
-        {/* Top 3 Podium (Visual Focus) */}
-        <div className="flex justify-center items-end gap-2 h-40 pt-4">
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-16 h-16 rounded-full bg-slate-300 flex items-center justify-center border-4 border-slate-400">
-              <span className="text-2xl font-bold">2</span>
-            </div>
-            <div className="w-20 h-16 bg-slate-400/50 rounded-t-lg flex items-center justify-center">
-              <p className="text-[10px] font-bold truncate px-1">{items[1]?.nickname}</p>
-            </div>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <Award className="w-8 h-8 text-yellow-500 animate-bounce" />
-            <div className="w-20 h-20 rounded-full bg-yellow-500 flex items-center justify-center border-4 border-yellow-600 shadow-[0_0_20px_rgba(234,179,8,0.5)]">
-              <span className="text-3xl font-bold">1</span>
-            </div>
-            <div className="w-24 h-24 bg-yellow-600/50 rounded-t-lg flex items-center justify-center">
-              <p className="text-xs font-bold truncate px-1">{items[0]?.nickname}</p>
+        {/* Podium Area */}
+        <div className="flex justify-center items-end gap-2 h-44 pt-4">
+          {/* 2위 */}
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-12 h-12 rounded-full bg-slate-300 flex items-center justify-center border-2 border-slate-400 font-bold">2</div>
+            <div className="w-20 h-16 bg-slate-400/20 rounded-t-lg flex items-center justify-center px-1">
+              <p className="text-[10px] font-bold truncate">{items[1]?.nickname || '-'}</p>
             </div>
           </div>
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-16 h-16 rounded-full bg-orange-400 flex items-center justify-center border-4 border-orange-500">
-              <span className="text-2xl font-bold">3</span>
+          {/* 1위 */}
+          <div className="flex flex-col items-center gap-1">
+            <Award className="w-6 h-6 text-yellow-500 animate-bounce" />
+            <div className="w-16 h-16 rounded-full bg-yellow-500 flex items-center justify-center border-4 border-yellow-600 shadow-xl font-bold text-white text-xl">1</div>
+            <div className="w-24 h-24 bg-yellow-600/20 rounded-t-lg flex items-center justify-center px-1 border-t-2 border-yellow-500/50">
+              <p className="text-xs font-bold truncate">{items[0]?.nickname || '-'}</p>
             </div>
-            <div className="w-20 h-12 bg-orange-500/50 rounded-t-lg flex items-center justify-center">
-              <p className="text-[10px] font-bold truncate px-1">{items[2]?.nickname}</p>
+          </div>
+          {/* 3위 */}
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-12 h-12 rounded-full bg-orange-400 flex items-center justify-center border-2 border-orange-500 font-bold">3</div>
+            <div className="w-20 h-12 bg-orange-500/20 rounded-t-lg flex items-center justify-center px-1">
+              <p className="text-[10px] font-bold truncate">{items[2]?.nickname || '-'}</p>
             </div>
           </div>
         </div>
 
-        {/* Full List with Motion */}
-        <div className="space-y-3 mt-8">
-          {items.map((p, index) => (
-            <motion.div
-              key={p.id}
-              layout
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-            >
-              <Card className="glass border-none overflow-hidden">
+        {/* Ranking List */}
+        <div className="space-y-3">
+          {items.map((p, idx) => (
+            <motion.div key={p.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <Card className={`glass border-none ${idx < 3 ? 'bg-primary/5' : ''}`}>
                 <CardContent className="p-4 flex justify-between items-center">
                   <div className="flex items-center gap-4">
-                    <span className="text-lg font-black italic opacity-20 w-6">
-                      {index + 1}
-                    </span>
-                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold">
-                      {p.nickname[0]}
-                    </div>
-                    <div>
-                      <p className="font-bold">{p.nickname}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Participant</p>
-                    </div>
+                    <span className={`text-lg font-black italic w-6 ${idx < 3 ? 'text-primary' : 'opacity-20'}`}>{idx + 1}</span>
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">{p.nickname[0]}</div>
+                    <p className="font-bold">{p.nickname}</p>
                   </div>
                   <div className="flex items-center gap-1 text-like">
                     <Heart className="w-4 h-4 fill-current" />
-                    <span className="font-bold">{p.score.toLocaleString()}</span>
+                    <span className="font-bold">{p.score}</span>
                   </div>
                 </CardContent>
               </Card>

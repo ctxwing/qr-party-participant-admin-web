@@ -5,216 +5,318 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
-import { Play, Square, Users, MessageSquare, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Play, Square, Users, MessageSquare, AlertCircle, CheckCircle2, Music, UserCog, History, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
-export default function AdminDashboard() {
+export default function AdminPage() {
+  const [user, setUser] = useState<any>(null)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const supabase = createClient()
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setUser(session?.user ?? null)
+      setIsLoading(false)
+    }
+    checkUser()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      toast.error('로그인 실패: ' + error.message)
+    } else {
+      toast.success('관리자 로그인 성공')
+    }
+    setIsLoading(false)
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    toast.success('로그아웃 되었습니다.')
+  }
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-50">Loading...</div>
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
+        <Card className="w-full max-w-md bg-slate-900 border-slate-800 text-slate-50">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <Lock className="text-primary w-6 h-6" />
+            </div>
+            <CardTitle className="text-2xl font-black">ADMIN LOGIN</CardTitle>
+            <CardDescription>관리자 계정으로 로그인하세요.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">이메일</label>
+                <Input 
+                  type="email" 
+                  placeholder="admin@example.com" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-slate-950 border-slate-800"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">비밀번호</label>
+                <Input 
+                  type="password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-slate-950 border-slate-800"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? '로그인 중...' : '로그인'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return <AdminDashboard onLogout={handleLogout} />
+}
+
+function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [sessionStatus, setSessionStatus] = useState<'READY' | 'ONGOING' | 'FINISHED'>('ONGOING')
-  const [sosRequests, setSosRequests] = useState<any[]>([])
-  const [participantCount, setParticipantCount] = useState(0)
-  const [messageCount, setMessageCount] = useState(0)
+  const [alerts, setAlerts] = useState<any[]>([])
+  const [participants, setParticipants] = useState<any[]>([])
+  const [messages, setMessages] = useState<any[]>([])
   const [announcement, setAnnouncement] = useState('')
+  const [filterUnapplied, setFilterUnapplied] = useState(false)
   
   const supabase = createClient()
 
   useEffect(() => {
     fetchInitialData()
 
-    const alertsChannel = supabase.channel('admin-alerts')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'alerts', filter: "type=eq.SOS" }, payload => {
-        setSosRequests(prev => [payload.new, ...prev])
-        toast.error('새로운 SOS 요청이 수신되었습니다!')
+    const channel = supabase.channel('admin-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'alerts' }, payload => {
+        setAlerts(prev => [payload.new, ...prev])
+        toast(payload.new.type === 'SOS' ? '🚨 SOS 요청 수신!' : '🎵 노래 요청 수신!')
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, () => fetchParticipants())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => fetchMessages())
       .subscribe()
 
-    return () => {
-      supabase.removeChannel(alertsChannel)
-    }
+    return () => { supabase.removeChannel(channel) }
   }, [])
 
   const fetchInitialData = async () => {
-    // 세션 정보
     const { data: session } = await supabase.from('party_sessions').select('status').eq('status', 'ONGOING').single()
-    if (session) setSessionStatus(session.status as 'ONGOING' | 'FINISHED')
-    else setSessionStatus('READY')
+    setSessionStatus(session?.status as any || 'READY')
 
-    // 통계
-    const { count: pCount } = await supabase.from('participants').select('*', { count: 'exact', head: true })
-    setParticipantCount(pCount || 0)
-
-    const { count: mCount } = await supabase.from('messages').select('*', { count: 'exact', head: true })
-    setMessageCount(mCount || 0)
-
-    // SOS 요청
-    const { data: alerts } = await supabase.from('alerts').select(`
-      id, created_at, message, is_resolved,
-      participants ( nickname )
-    `).eq('type', 'SOS').order('created_at', { ascending: false })
-    
-    if (alerts) setSosRequests(alerts)
+    await Promise.all([fetchParticipants(), fetchMessages(), fetchAlerts()])
   }
 
-  const handleSendAnnouncement = async () => {
-    if (!announcement.trim()) return
-    
-    // 현재 세션 가져오기
-    const { data: session } = await supabase.from('party_sessions').select('id').eq('status', 'ONGOING').single()
-    if (!session) {
-      toast.error('활성화된 파티 세션이 없습니다.')
-      return
-    }
+  const fetchParticipants = async () => {
+    const { data } = await supabase.from('participants').select('*').order('nickname')
+    if (data) setParticipants(data)
+  }
 
-    const { error } = await supabase.from('alerts').insert({
-      session_id: session.id,
-      type: 'SYSTEM',
-      message: announcement
-    })
+  const fetchMessages = async () => {
+    const { data } = await supabase.from('messages').select('*, sender:sender_id(nickname), receiver:receiver_id(nickname)').order('created_at', { ascending: false }).limit(50)
+    if (data) setMessages(data)
+  }
 
-    if (error) {
-      toast.error('공지사항 발송에 실패했습니다.')
-    } else {
-      toast.success('전체 공지사항이 발송되었습니다: ' + announcement)
-      setAnnouncement('')
+  const fetchAlerts = async () => {
+    const { data } = await supabase.from('alerts').select('*, participants(nickname)').order('created_at', { ascending: false })
+    if (data) setAlerts(data)
+  }
+
+  const handleUpdateCount = async (id: string, field: string, value: number) => {
+    const { error } = await supabase.from('participants').update({ [field]: value }).eq('id', id)
+    if (!error) {
+      toast.success('횟수가 조정되었습니다.')
+      fetchParticipants()
     }
+  }
+
+  const handleToggleApply = async (id: string, field: string, current: boolean) => {
+    await supabase.from('participants').update({ [field]: !current }).eq('id', id)
+    toast.success('신청 상태가 변경되었습니다.')
+    fetchParticipants()
   }
 
   const handleToggleSession = async () => {
     const nextStatus = sessionStatus === 'ONGOING' ? 'FINISHED' : 'ONGOING'
-    
     if (nextStatus === 'ONGOING') {
-      await supabase.from('party_sessions').insert({
-        title: "환영 파티",
-        start_time: new Date().toISOString(),
-        end_time: new Date(Date.now() + 3600000).toISOString(),
-        status: 'ONGOING'
-      })
+      await supabase.from('party_sessions').insert({ status: 'ONGOING', title: 'Party', start_time: new Date().toISOString() })
     } else {
       await supabase.from('party_sessions').update({ status: 'FINISHED' }).eq('status', 'ONGOING')
     }
-    
     setSessionStatus(nextStatus)
-    toast.success(`파티 세션이 ${nextStatus === 'ONGOING' ? '시작' : '종료'}되었습니다.`)
+    toast.success(`세션 ${nextStatus}`)
   }
 
-  const resolveSos = async (id: string) => {
-    const { error } = await supabase.from('alerts').update({ is_resolved: true }).eq('id', id)
-    if (!error) {
-      setSosRequests(prev => prev.map(req => req.id === id ? { ...req, is_resolved: true } : req))
-      toast.success('SOS 요청이 해결 처리되었습니다.')
-    } else {
-      toast.error('처리 중 오류가 발생했습니다.')
-    }
-  }
+  const filteredParticipants = filterUnapplied 
+    ? participants.filter(p => !p.is_second_applied) 
+    : participants
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 p-6 space-y-8 pb-20">
-      {/* Admin Header */}
-      <div className="flex justify-between items-center max-w-6xl mx-auto">
-        <div>
-          <h1 className="text-4xl font-black tracking-tighter">ADMIN CONSOLE</h1>
-          <p className="text-slate-400">QR Party Manager v1.0</p>
-        </div>
+    <div className="min-h-screen bg-slate-950 text-slate-50 p-6 space-y-8">
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <Badge variant={sessionStatus === 'ONGOING' ? 'default' : 'secondary'} className="px-4 py-1 text-sm">
-            {sessionStatus}
-          </Badge>
-          <Button 
-            variant={sessionStatus === 'ONGOING' ? 'destructive' : 'default'}
-            onClick={handleToggleSession}
-            className="gap-2 font-bold"
-          >
-            {sessionStatus === 'ONGOING' ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+          <h1 className="text-3xl font-black">ADMIN CONSOLE</h1>
+          <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">Authenticated</Badge>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onLogout}>LOGOUT</Button>
+          <Button variant={sessionStatus === 'ONGOING' ? 'destructive' : 'default'} onClick={handleToggleSession}>
             {sessionStatus === 'ONGOING' ? 'STOP PARTY' : 'START PARTY'}
           </Button>
         </div>
       </div>
 
-      {/* Global Announcement Section */}
-      <Card className="max-w-6xl mx-auto bg-primary/10 border-primary/20 text-slate-50">
-        <CardContent className="p-6 flex flex-col md:flex-row gap-4 items-end">
-          <div className="flex-1 space-y-2">
-            <p className="text-xs font-bold text-primary uppercase flex items-center gap-2">
-              <MessageSquare className="w-3 h-3" /> Broadcast Announcement
-            </p>
-            <Input 
-              placeholder="모든 참여자에게 보낼 공지사항을 입력하세요..." 
-              className="bg-slate-900 border-slate-800"
-              value={announcement}
-              onChange={(e) => setAnnouncement(e.target.value)}
-            />
+      <Tabs defaultValue="dashboard" className="max-w-7xl mx-auto">
+        <TabsList className="bg-slate-900 border-slate-800">
+          <TabsTrigger value="dashboard">현황판</TabsTrigger>
+          <TabsTrigger value="participants">참여자 관리</TabsTrigger>
+          <TabsTrigger value="messages">쪽지 모니터링</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="bg-slate-900 border-slate-800 text-slate-50">
+              <CardHeader><CardTitle className="text-blue-400">{participants.length}</CardTitle><CardDescription>참여자 수</CardDescription></CardHeader>
+            </Card>
+            <Card className="bg-slate-900 border-slate-800 text-slate-50">
+              <CardHeader><CardTitle className="text-green-400">{messages.length}</CardTitle><CardDescription>누적 쪽지</CardDescription></CardHeader>
+            </Card>
+            <Card className="bg-slate-900 border-slate-800 text-slate-50">
+              <CardHeader><CardTitle className="text-red-400">{alerts.filter(a => a.type==='SOS' && !a.is_resolved).length}</CardTitle><CardDescription>미해결 SOS</CardDescription></CardHeader>
+            </Card>
           </div>
-          <Button onClick={handleSendAnnouncement} className="font-bold px-8">SEND BROADCAST</Button>
-        </CardContent>
-      </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-        {/* Stat Cards */}
-        <Card className="bg-slate-900 border-slate-800 text-slate-50">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-slate-400">Total Participants</CardDescription>
-            <CardTitle className="text-4xl flex items-center gap-3">
-              <Users className="text-blue-500" /> {participantCount}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="bg-slate-900 border-slate-800 text-slate-50">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-slate-400">Messages Sent</CardDescription>
-            <CardTitle className="text-4xl flex items-center gap-3">
-              <MessageSquare className="text-green-500" /> {messageCount}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="bg-slate-900 border-slate-800 text-slate-50">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-slate-400">Active SOS</CardDescription>
-            <CardTitle className="text-4xl flex items-center gap-3 text-red-500">
-              <AlertCircle /> {sosRequests.filter(r => !r.is_resolved).length}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-
-        {/* SOS Management List */}
-        <Card className="md:col-span-3 bg-slate-900 border-slate-800 text-slate-50">
-          <CardHeader>
-            <CardTitle>SOS Request Queue</CardTitle>
-            <CardDescription className="text-slate-400">실시간 참여자 요청 사항 및 응급 호출</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {sosRequests.map((sos) => (
-                <div 
-                  key={sos.id} 
-                  className={`p-4 rounded-lg border flex justify-between items-center ${
-                    sos.is_resolved ? 'bg-slate-800/30 border-slate-800 opacity-60' : 'bg-red-500/10 border-red-500/30'
-                  }`}
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold">{sos.participants?.nickname || 'Unknown'}</span>
-                      <span className="text-[10px] text-slate-500">{new Date(sos.created_at).toLocaleTimeString()}</span>
+          <Card className="bg-slate-900 border-slate-800 text-slate-50">
+            <CardHeader><CardTitle>실시간 요청 (SOS / 노래)</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {alerts.length === 0 ? (
+                <p className="text-center py-8 text-slate-500">수신된 요청이 없습니다.</p>
+              ) : (
+                alerts.map(a => (
+                  <div key={a.id} className={`p-4 rounded-lg border flex justify-between items-center ${a.type==='SOS' ? 'bg-red-500/10 border-red-500/30' : 'bg-blue-500/10 border-blue-500/30'}`}>
+                    <div className="flex items-center gap-3">
+                      {a.type === 'SOS' ? <AlertCircle className="text-red-500" /> : <Music className="text-blue-500" />}
+                      <div>
+                        <p className="font-bold">{a.participants?.nickname || '시스템'} : {a.message}</p>
+                        <p className="text-[10px] opacity-50">{new Date(a.created_at).toLocaleTimeString()}</p>
+                      </div>
                     </div>
-                    <p className="text-sm">{sos.message}</p>
+                    {!a.is_resolved && (
+                      <Button size="sm" onClick={() => supabase.from('alerts').update({ is_resolved: true }).eq('id', a.id).then(() => fetchAlerts())}>Resolve</Button>
+                    )}
                   </div>
-                  {sos.is_resolved ? (
-                    <Badge variant="outline" className="text-green-500 border-green-500 gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> RESOLVED
-                    </Badge>
-                  ) : (
-                    <Button size="sm" variant="outline" className="hover:bg-green-500 hover:text-white" onClick={() => resolveSos(sos.id)}>
-                      Resolve
-                    </Button>
-                  )}
-                </div>
-              ))}
-              {sosRequests.length === 0 && (
-                <div className="text-center py-8 text-slate-500">수신된 SOS 요청이 없습니다.</div>
+                ))
               )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="participants">
+          <Card className="bg-slate-900 border-slate-800 text-slate-50">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div><CardTitle>참여자 리스트</CardTitle><CardDescription>1차/2차 신청 상태 및 횟수 관리</CardDescription></div>
+              <Button variant={filterUnapplied ? "default" : "outline"} onClick={() => setFilterUnapplied(!filterUnapplied)}>
+                {filterUnapplied ? "전체 보기" : "2차 미신청자만 보기"}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-slate-800 text-left"><th className="p-3">닉네임</th><th className="p-3">1차</th><th className="p-3">2차</th><th className="p-3">큐피트</th><th className="p-3">호감도</th><th className="p-3">액션</th></tr></thead>
+                  <tbody>
+                    {filteredParticipants.map(p => (
+                      <tr key={p.id} className="border-b border-slate-800/50 hover:bg-slate-800/20">
+                        <td className="p-3 font-bold">{p.nickname}</td>
+                        <td className="p-3">
+                          <Badge 
+                            onClick={() => handleToggleApply(p.id, 'is_first_applied', p.is_first_applied)} 
+                            className="cursor-pointer" 
+                            variant={p.is_first_applied ? 'default' : 'secondary'}
+                          >
+                            {p.is_first_applied ? 'O' : 'X'}
+                          </Badge>
+                        </td>
+                        <td className="p-3">
+                          <Badge 
+                            onClick={() => handleToggleApply(p.id, 'is_second_applied', p.is_second_applied)} 
+                            className="cursor-pointer" 
+                            variant={p.is_second_applied ? 'default' : 'secondary'}
+                          >
+                            {p.is_second_applied ? 'O' : 'X'}
+                          </Badge>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <button className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center hover:bg-slate-700" onClick={() => handleUpdateCount(p.id, 'cupid_count', (p.cupid_count || 0) - 1)}>-</button>
+                            <span className="w-4 text-center">{p.cupid_count || 0}</span>
+                            <button className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center hover:bg-slate-700" onClick={() => handleUpdateCount(p.id, 'cupid_count', (p.cupid_count || 0) + 1)}>+</button>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <button className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center hover:bg-slate-700" onClick={() => handleUpdateCount(p.id, 'like_count', (p.like_count || 0) - 1)}>-</button>
+                            <span className="w-4 text-center">{p.like_count || 0}</span>
+                            <button className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center hover:bg-slate-700" onClick={() => handleUpdateCount(p.id, 'like_count', (p.like_count || 0) + 1)}>+</button>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <Button size="icon" variant="ghost" className="h-8 w-8"><UserCog className="w-4 h-4" /></Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="messages">
+          <Card className="bg-slate-900 border-slate-800 text-slate-50">
+            <CardHeader><CardTitle>전체 쪽지 모니터링</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              {messages.length === 0 ? (
+                <p className="text-center py-8 text-slate-500">발송된 쪽지가 없습니다.</p>
+              ) : (
+                messages.map(m => (
+                  <div key={m.id} className="p-3 bg-slate-800/50 rounded border border-slate-700 flex justify-between text-xs">
+                    <div>
+                      <span className="text-primary font-bold">{m.sender?.nickname || '알수없음'}</span> → <span className="text-primary font-bold">{m.receiver?.nickname || '알수없음'}</span>
+                      <p className="mt-1 text-slate-300">{m.content}</p>
+                    </div>
+                    <span className="opacity-40">{new Date(m.created_at).toLocaleTimeString()}</span>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
