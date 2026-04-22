@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { registerParticipant } from '@/app/actions/participant'
+import { createClient } from '@/lib/supabase'
 
 export default function SetupPage() {
   const router = useRouter()
@@ -16,13 +17,39 @@ export default function SetupPage() {
   const { participant, setParticipant } = useStore()
   const [nickname, setNickname] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const supabase = createClient()
 
-  // 이미 닉네임이 설정되어 있다면 대시보드로 이동
+  // 1. 이미 닉네임이 설정되어 있다면 대시보드로 이동 (Store 기반)
   useEffect(() => {
     if (!authLoading && participant?.nickname) {
       router.push('/dashboard')
     }
   }, [authLoading, participant, router])
+
+  // 2. 익명 사용자의 기존 등록 내역 확인 (DB 기반)
+  useEffect(() => {
+    const checkExistingParticipant = async () => {
+      if (user && !participant) {
+        const { data } = await supabase
+          .from('participants')
+          .select('*')
+          .eq('anonymous_id', user.id)
+          .maybeSingle()
+        
+        if (data) {
+          setParticipant({
+            id: data.id,
+            nickname: data.nickname,
+            nicknameChangeCount: data.nickname_change_count || 0
+          })
+          router.push('/dashboard')
+        }
+      }
+    }
+    if (!authLoading) {
+      checkExistingParticipant()
+    }
+  }, [authLoading, user, participant, router, supabase, setParticipant])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,7 +71,7 @@ export default function SetupPage() {
         setParticipant({
           id: result.participant.id,
           nickname: result.participant.nickname,
-          nicknameChangeCount: result.participant.nicknameChangeCount
+          nicknameChangeCount: result.participant.nickname_change_count || 0
         })
         toast.success('닉네임 설정이 완료되었습니다!')
         router.push('/dashboard')
@@ -59,7 +86,24 @@ export default function SetupPage() {
     }
   }
 
-  if (authLoading) return <div className="flex h-screen items-center justify-center">로딩 중...</div>
+  if (authLoading) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center bg-slate-950 text-slate-50 gap-4">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-center">
+          <p className="font-bold">인증 정보 확인 중...</p>
+          <p className="text-xs opacity-50 mt-2">서버 연결이 늦어지고 있습니다. 잠시만 기다려주세요.</p>
+          <Button 
+            variant="link" 
+            className="text-primary text-xs mt-4" 
+            onClick={() => window.location.reload()}
+          >
+            화면 새로고침
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">

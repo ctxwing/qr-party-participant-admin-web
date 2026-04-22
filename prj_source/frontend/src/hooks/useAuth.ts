@@ -9,14 +9,17 @@ export function useAuth() {
 
   useEffect(() => {
     const initAuth = async () => {
+      // 5초 타임아웃 설정: 인증 서버 응답이 없으면 로딩 종료
+      const timeoutId = setTimeout(() => {
+        setLoading(false)
+      }, 5000)
+
       try {
-        // 1. 현재 세션 확인
         const { data: { session } } = await supabase.auth.getSession()
         
         if (session) {
           setUser(session.user)
         } else {
-          // 2. 세션 없으면 익명 로그인 시도
           const { data, error } = await supabase.auth.signInAnonymously()
           if (error) throw error
           if (data.user) setUser(data.user)
@@ -24,6 +27,7 @@ export function useAuth() {
       } catch (error) {
         console.error('인증 에러:', error)
       } finally {
+        clearTimeout(timeoutId)
         setLoading(false)
       }
     }

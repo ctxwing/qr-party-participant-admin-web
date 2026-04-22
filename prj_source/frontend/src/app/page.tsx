@@ -15,6 +15,7 @@ export default function LandingPage() {
               width={180} 
               height={180} 
               className="relative rounded-3xl shadow-2xl"
+              priority
             />
           </div>
           <div className="space-y-2">
@@ -25,13 +26,13 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           <Link href="/setup">
             <Button size="lg" className="w-full h-14 text-lg font-bold rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 transition-transform">
               파티 참여하기
             </Button>
           </Link>
-          <p className="text-xs text-muted-foreground">별도의 회원가입 없이 익명으로 참여 가능합니다.</p>
+          <p className="text-xs text-muted-foreground mt-4 tracking-wide">별도의 회원가입 없이 익명으로 참여 가능합니다.</p>
         </div>
       </div>
     </div>

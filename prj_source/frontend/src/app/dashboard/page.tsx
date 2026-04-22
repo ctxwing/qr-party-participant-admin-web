@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { MessageCircle, Heart, Zap, Award, AlertTriangle } from 'lucide-react'
+import { MessageCircle, Heart, Zap, Award, AlertTriangle, Edit2 } from 'lucide-react'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { createClient } from '@/lib/supabase'
+import { updateNickname } from '@/app/actions/nickname'
 import Link from 'next/link'
 
 export default function DashboardPage() {
-  const { participant } = useStore()
+  const { participant, setParticipant } = useStore()
   useRealtime(participant?.id)
   
   const [participants, setParticipants] = useState<any[]>([])
@@ -22,6 +23,9 @@ export default function DashboardPage() {
   const [message, setMessage] = useState('')
   const [stats, setStats] = useState({ messages: 0, cupid: 0, likes: 0 })
   const [myProfile, setMyProfile] = useState<any>(null)
+  const [newNickname, setNewNickname] = useState('')
+  const [isChangingNickname, setIsChangingNickname] = useState(false)
+  const [isNicknameDialogOpen, setIsNicknameDialogOpen] = useState(false)
   
   const supabase = createClient()
 
@@ -191,13 +195,73 @@ export default function DashboardPage() {
     }
   }
 
+  const handleNicknameChange = async () => {
+    if (!newNickname.trim() || !participant?.id) return
+    if (newNickname === participant.nickname) {
+      toast.error('현재와 동일한 닉네임입니다.')
+      return
+    }
+
+    setIsChangingNickname(true)
+    const result = await updateNickname(participant.id, newNickname.trim())
+    
+    if (result.success) {
+      setParticipant({
+        ...participant,
+        nickname: newNickname.trim(),
+        nicknameChangeCount: result.newCount || (participant.nicknameChangeCount + 1)
+      })
+      toast.success('닉네임이 변경되었습니다.')
+      fetchMyStats()
+      setIsNicknameDialogOpen(false)
+    } else {
+      toast.error(result.error)
+    }
+    setIsChangingNickname(false)
+  }
+
   return (
     <div className="min-h-screen bg-background p-4 pb-24">
       <div className="w-full max-w-md mx-auto space-y-6 pt-12">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold">파티 현황</h1>
-            <p className="text-muted-foreground">{participant?.nickname || '참여자'}님, 환영합니다!</p>
+            <div className="flex items-center gap-1">
+              <p className="text-muted-foreground">{participant?.nickname || '참여자'}님, 환영합니다!</p>
+              <Dialog open={isNicknameDialogOpen} onOpenChange={setIsNicknameDialogOpen}>
+                <DialogTrigger 
+                  render={
+                    <Button variant="ghost" size="icon" className="opacity-40 hover:opacity-100 h-6 w-6">
+                      <Edit2 className="w-3 h-3" />
+                    </Button>
+                  }
+                />
+                <DialogContent className="glass border-none max-w-[90%] rounded-2xl bg-white/10 backdrop-blur-xl ring-1 ring-white/20">
+                  <DialogHeader>
+                    <DialogTitle className="text-center">닉네임 변경</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">현재 닉네임: <span className="font-bold text-foreground">{participant?.nickname}</span></p>
+                      <Input 
+                        placeholder="새로운 닉네임 입력" 
+                        value={newNickname}
+                        onChange={(e) => setNewNickname(e.target.value)}
+                        className="glass border-none h-12"
+                      />
+                      <p className="text-[10px] text-right text-muted-foreground">남은 변경 횟수: {3 - (myProfile?.nickname_change_count || 0)}회</p>
+                    </div>
+                    <Button 
+                      className="w-full h-12 font-bold" 
+                      onClick={handleNicknameChange}
+                      disabled={isChangingNickname || (myProfile?.nickname_change_count >= 3)}
+                    >
+                      {isChangingNickname ? '변경 중...' : '닉네임 변경하기'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
             <div className="flex gap-2 mt-2">
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${myProfile?.is_first_applied ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
                 1차 신청 {myProfile?.is_first_applied ? 'O' : 'X'}
@@ -250,18 +314,21 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 gap-3">
             {participants.map((p) => (
               <Dialog key={p.id}>
-                <DialogTrigger asChild>
-                  <Card 
-                    className="glass border-none hover:bg-white/10 transition-all cursor-pointer active:scale-95 group"
-                    onClick={() => setSelectedUser(p)}
-                  >
-                    <CardContent className="p-4 flex flex-col items-center gap-2">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-bold text-xl group-hover:scale-110 transition-transform shadow-lg">
-                        {p.nickname[0]}
-                      </div>
-                      <p className="font-bold text-sm truncate w-full text-center">{p.nickname}</p>
-                    </CardContent>
-                  </Card>
+                <DialogTrigger 
+                  nativeButton={false}
+                  render={
+                    <Card 
+                      className="glass border-none hover:bg-white/10 transition-all cursor-pointer active:scale-95 group"
+                      onClick={() => setSelectedUser(p)}
+                    />
+                  }
+                >
+                  <CardContent className="p-4 flex flex-col items-center gap-2">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-bold text-xl group-hover:scale-110 transition-transform shadow-lg">
+                      {p.nickname[0]}
+                    </div>
+                    <p className="font-bold text-sm truncate w-full text-center">{p.nickname}</p>
+                  </CardContent>
                 </DialogTrigger>
                 <DialogContent className="glass border-none max-w-[90%] rounded-2xl">
                   <DialogHeader>
@@ -316,13 +383,16 @@ export default function DashboardPage() {
 
       <div className="fixed bottom-8 left-0 right-0 flex justify-center gap-2 px-6 pointer-events-none">
         <Dialog>
-          <DialogTrigger asChild>
-            <Button 
-              className="rounded-full shadow-2xl bg-sos hover:bg-sos/90 pointer-events-auto h-14 w-14 p-0 flex items-center justify-center cursor-pointer"
-              onClick={triggerHaptic}
-            >
-              <AlertTriangle className="w-5 h-5 animate-pulse text-white" />
-            </Button>
+          <DialogTrigger 
+            nativeButton={false}
+            render={
+              <Button 
+                className="rounded-full shadow-2xl bg-sos hover:bg-sos/90 pointer-events-auto h-14 w-14 p-0 flex items-center justify-center cursor-pointer"
+                onClick={triggerHaptic}
+              />
+            }
+          >
+            <AlertTriangle className="w-5 h-5 animate-pulse text-white" />
           </DialogTrigger>
           <DialogContent className="glass border-none max-w-[90%] rounded-2xl">
             <DialogHeader>
@@ -341,14 +411,17 @@ export default function DashboardPage() {
         </Dialog>
 
         <Dialog>
-          <DialogTrigger asChild>
-            <Button 
-              className="rounded-full shadow-2xl bg-blue-500 hover:bg-blue-600 pointer-events-auto h-14 px-6 gap-2 flex items-center justify-center cursor-pointer"
-              onClick={triggerHaptic}
-            >
-              <Zap className="w-5 h-5 fill-current text-white" />
-              <span className="font-bold uppercase tracking-tight text-white">Music</span>
-            </Button>
+          <DialogTrigger 
+            nativeButton={false}
+            render={
+              <Button 
+                className="rounded-full shadow-2xl bg-blue-500 hover:bg-blue-600 pointer-events-auto h-14 px-6 gap-2 flex items-center justify-center cursor-pointer"
+                onClick={triggerHaptic}
+              />
+            }
+          >
+            <Zap className="w-5 h-5 fill-current text-white" />
+            <span className="font-bold uppercase tracking-tight text-white">Music</span>
           </DialogTrigger>
           <DialogContent className="glass border-none max-w-[90%] rounded-2xl">
             <DialogHeader>
