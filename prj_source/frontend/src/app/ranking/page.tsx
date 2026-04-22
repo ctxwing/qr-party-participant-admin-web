@@ -16,16 +16,29 @@ export default function RankingPage() {
 
   const fetchRankings = async () => {
     try {
+      // 가중치 설정 가져오기
+      const { data: settings } = await supabase.from('system_settings').select('value').eq('key', 'ranking_weights').maybeSingle()
+      const weights = settings?.value || { like: 1, message: 5, cupid: 10 }
+
       const { data: participants } = await supabase.from('participants').select('id, nickname')
-      const { data: interactions } = await supabase.from('interactions').select('receiver_id, weight')
+      const { data: interactions } = await supabase.from('interactions').select('receiver_id, type')
+      const { data: messages } = await supabase.from('messages').select('receiver_id')
 
       if (!participants) return
 
       const rankings = participants.map(p => {
-        const score = interactions
+        // 상호작용 점수 (좋아요, 큐피트 등)
+        const interactionScore = interactions
           ?.filter(i => i.receiver_id === p.id)
-          ?.reduce((acc, curr) => acc + (curr.weight || 1), 0) || 0
-        return { id: p.id, nickname: p.nickname, score }
+          ?.reduce((acc, curr) => {
+            const w = curr.type === 'CUPID' ? (weights.cupid || 10) : (weights.like || 1);
+            return acc + w;
+          }, 0) || 0
+
+        // 쪽지 수신 점수
+        const messageScore = (messages?.filter(m => m.receiver_id === p.id).length || 0) * (weights.message || 5)
+
+        return { id: p.id, nickname: p.nickname, score: interactionScore + messageScore }
       })
 
       setItems(rankings.sort((a, b) => b.score - a.score))

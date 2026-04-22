@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Play, Square, Users, MessageSquare, AlertCircle, CheckCircle2, Music, UserCog, History, Lock, Eye, EyeOff, Calendar, Fingerprint, ShieldCheck, ArrowRight } from 'lucide-react'
+import { Play, Square, Users, MessageSquare, AlertCircle, CheckCircle2, Music, UserCog, History, Lock, Eye, EyeOff, Calendar, Fingerprint, ShieldCheck, ArrowRight, Settings2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { AgGridReact } from 'ag-grid-react'
 import { AllCommunityModule, ModuleRegistry, ColDef } from 'ag-grid-community'
@@ -127,6 +127,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null)
   const [participantStats, setParticipantStats] = useState<any>({ received: 0, sent: 0, songs: 0, sos: 0 })
   const [nicknameHistory, setNicknameHistory] = useState<any[]>([])
+  const [weights, setWeights] = useState<any>({ like: 1, message: 5, cupid: 10 })
   
   const supabase = createClient()
 
@@ -155,7 +156,19 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const { data: session } = await supabase.from('party_sessions').select('status').eq('status', 'ONGOING').maybeSingle()
     setSessionStatus(session?.status as any || 'READY')
 
-    await Promise.all([fetchParticipants(), fetchMessages(), fetchAlerts()])
+    await Promise.all([fetchParticipants(), fetchMessages(), fetchAlerts(), fetchSettings()])
+  }
+
+  const fetchSettings = async () => {
+    const { data } = await supabase.from('system_settings').select('value').eq('key', 'ranking_weights').maybeSingle()
+    if (data) setWeights(data.value)
+  }
+
+  const handleUpdateWeights = async () => {
+    const { error } = await supabase.from('system_settings').upsert({ key: 'ranking_weights', value: weights })
+    if (!error) {
+      toast.success('랭킹 가중치가 저장되었습니다.')
+    }
   }
 
   const fetchParticipants = async () => {
@@ -174,7 +187,6 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   }
 
   const fetchParticipantDetails = async (id: string) => {
-    // 쪽지 및 알람 통계 조회
     const [received, sent, alertData, history] = await Promise.all([
       supabase.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', id),
       supabase.from('messages').select('*', { count: 'exact', head: true }).eq('sender_id', id),
@@ -224,7 +236,6 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     return matchesFilter && matchesSearch
   })
 
-  // AG Grid Column Definitions
   const columnDefs: ColDef[] = [
     { 
       field: 'nickname', 
@@ -341,6 +352,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           <TabsTrigger value="dashboard">현황판</TabsTrigger>
           <TabsTrigger value="participants">참여자 관리</TabsTrigger>
           <TabsTrigger value="messages">쪽지 모니터링</TabsTrigger>
+          <TabsTrigger value="settings">시스템 설정</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
@@ -441,6 +453,49 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="settings">
+          <Card className="bg-slate-900 border-slate-800 text-slate-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings2 className="w-5 h-5 text-blue-400" />
+                시스템 설정
+              </CardTitle>
+              <CardDescription>랭킹 산정 가중치 및 시스템 전역 설정을 관리합니다.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4 max-w-md">
+                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">랭킹 가중치 설정</h3>
+                <div className="grid grid-cols-2 gap-4 items-center">
+                  <label className="text-sm">좋아요 (Like)</label>
+                  <Input 
+                    type="number" 
+                    value={weights.like} 
+                    onChange={(e) => setWeights({...weights, like: parseInt(e.target.value)})}
+                    className="bg-slate-950 border-slate-800"
+                  />
+                  
+                  <label className="text-sm">쪽지 수신 (Message)</label>
+                  <Input 
+                    type="number" 
+                    value={weights.message} 
+                    onChange={(e) => setWeights({...weights, message: parseInt(e.target.value)})}
+                    className="bg-slate-950 border-slate-800"
+                  />
+                  
+                  <label className="text-sm">큐피트 매칭 (Cupid)</label>
+                  <Input 
+                    type="number" 
+                    value={weights.cupid} 
+                    onChange={(e) => setWeights({...weights, cupid: parseInt(e.target.value)})}
+                    className="bg-slate-950 border-slate-800"
+                  />
+                </div>
+                <Button className="w-full mt-4" onClick={handleUpdateWeights}>설정 저장</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* 참여자 상세 정보 모달 */}
@@ -480,7 +535,6 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   </div>
                 </div>
 
-                {/* 활동 통계 */}
                 <div className="p-4 bg-slate-950 rounded-lg border border-slate-800 space-y-3">
                   <p className="text-[10px] text-slate-500 uppercase font-bold border-b border-slate-800 pb-1 mb-2">활동 통계</p>
                   <div className="grid grid-cols-2 gap-y-3 gap-x-6">
@@ -503,7 +557,6 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   </div>
                 </div>
 
-                {/* 닉네임 변경 이력 */}
                 <div className="p-4 bg-slate-950 rounded-lg border border-slate-800 space-y-3">
                   <p className="text-[10px] text-slate-500 uppercase font-bold border-b border-slate-800 pb-1 mb-2 flex items-center gap-2">
                     <History className="w-3 h-3" /> 닉네임 변경 이력
