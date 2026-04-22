@@ -26,6 +26,8 @@ export default function DashboardPage() {
   const [newNickname, setNewNickname] = useState('')
   const [isChangingNickname, setIsChangingNickname] = useState(false)
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = useState(false)
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [openInteractionId, setOpenInteractionId] = useState<string | null>(null)
   
   const supabase = createClient()
 
@@ -33,6 +35,7 @@ export default function DashboardPage() {
     if (!participant?.id) return
     fetchParticipants()
     fetchMyStats()
+    fetchActiveSession()
 
     // 실시간 업데이트 구독 (참여자 목록 및 스탯)
     const channel = supabase.channel('dashboard-realtime')
@@ -61,6 +64,11 @@ export default function DashboardPage() {
     if (data) {
       setParticipants(data.filter(p => p.id !== participant?.id))
     }
+  }
+
+  const fetchActiveSession = async () => {
+    const { data } = await supabase.from('party_sessions').select('id').eq('status', 'ONGOING').maybeSingle()
+    if (data) setSessionId(data.id)
   }
 
   const fetchMyStats = async () => {
@@ -110,7 +118,7 @@ export default function DashboardPage() {
       type,
       sender_id: participant.id,
       receiver_id: selectedUser.id,
-      session_id: (await supabase.from('party_sessions').select('id').eq('status', 'ONGOING').single()).data?.id
+      session_id: sessionId
     })
 
     if (insError) {
@@ -126,6 +134,7 @@ export default function DashboardPage() {
     toast.success(`${selectedUser.nickname}님에게 ${type === 'CUPID' ? '큐피트' : '호감도'}를 보냈습니다!`)
     fetchMyStats()
     setSelectedUser(null)
+    setOpenInteractionId(null)
   }
 
   const handleSendMessage = async () => {
@@ -141,7 +150,7 @@ export default function DashboardPage() {
       content: message,
       sender_id: participant.id,
       receiver_id: selectedUser.id,
-      session_id: (await supabase.from('party_sessions').select('id').eq('status', 'ONGOING').single()).data?.id
+      session_id: sessionId
     })
 
     if (error) {
@@ -150,6 +159,7 @@ export default function DashboardPage() {
       toast.success(`${selectedUser.nickname}님에게 쪽지를 보냈습니다.`)
       setMessage('')
       setSelectedUser(null)
+      setOpenInteractionId(null)
     }
   }
 
@@ -313,7 +323,7 @@ export default function DashboardPage() {
           </h2>
           <div className="grid grid-cols-2 gap-3">
             {participants.map((p) => (
-              <Dialog key={p.id}>
+              <Dialog key={p.id} open={openInteractionId === p.id} onOpenChange={(open) => setOpenInteractionId(open ? p.id : null)}>
                 <DialogTrigger 
                   nativeButton={false}
                   render={
@@ -384,7 +394,6 @@ export default function DashboardPage() {
       <div className="fixed bottom-8 left-0 right-0 flex justify-center gap-2 px-6 pointer-events-none">
         <Dialog>
           <DialogTrigger 
-            nativeButton={false}
             render={
               <Button 
                 className="rounded-full shadow-2xl bg-sos hover:bg-sos/90 pointer-events-auto h-14 w-14 p-0 flex items-center justify-center cursor-pointer"
@@ -412,7 +421,6 @@ export default function DashboardPage() {
 
         <Dialog>
           <DialogTrigger 
-            nativeButton={false}
             render={
               <Button 
                 className="rounded-full shadow-2xl bg-blue-500 hover:bg-blue-600 pointer-events-auto h-14 px-6 gap-2 flex items-center justify-center cursor-pointer"
