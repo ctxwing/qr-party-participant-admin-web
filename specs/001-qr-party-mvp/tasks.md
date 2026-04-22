@@ -46,22 +46,22 @@
     - [x] 3_prj_docs/완료내역/TASK_T006_완료내역.md 작성 (테스트 성공 결과 포함)
     - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
     - [x] 한글 메시지로 git commit 및 git push 수행
-- [ ] T007 전역 상태 관리(Zustand)를 이용한 사용자 세션 및 실시간 알림 상태 정의
-    - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
-    - [ ] 3_prj_docs/완료내역/TASK_T007_완료내역.md 작성 (테스트 성공 결과 포함)
-    - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
-    - [ ] 한글 메시지로 git commit 및 git push 수행
+- [x] T007 전역 상태 관리(Zustand)를 이용한 사용자 세션 및 실시간 알림 상태 정의
+    - [x] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
+    - [x] 3_prj_docs/완료내역/TASK_T007_완료내역.md 작성 (테스트 성공 결과 포함)
+    - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
+    - [x] 한글 메시지로 git commit 및 git push 수행
 
 ## Phase 3: User Story 1 - 파티 참여 및 프로필 설정
 
 **Goal**: QR 접속 후 닉네임을 설정하고 파티에 정식 참여한다.
 **Test**: QR 경로 접속 시 닉네임 설정창 노출 여부 및 3회 변경 제한 작동 확인.
 
-- [ ] T008 [P] [US1] `prj_source/frontend/app/setup/page.tsx` 닉네임 설정 화면 구현 (모바일 최적화)
-    - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
-    - [ ] 3_prj_docs/완료내역/TASK_T008_완료내역.md 작성 (테스트 성공 결과 포함)
-    - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
-    - [ ] 한글 메시지로 git commit 및 git push 수행
+- [x] T008 [P] [US1] `prj_source/frontend/app/setup/page.tsx` 닉네임 설정 화면 구현 (모바일 최적화)
+    - [x] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
+    - [x] 3_prj_docs/완료내역/TASK_T008_완료내역.md 작성 (테스트 성공 결과 포함)
+    - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
+    - [x] 한글 메시지로 git commit 및 git push 수행
 - [ ] T009 [US1] `prj_source/frontend/lib/nickname.ts` 닉네임 변경 횟수 제한(3회) 및 중복 검사 로직 구현
     - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
     - [ ] 3_prj_docs/완료내역/TASK_T009_완료내역.md 작성 (테스트 성공 결과 포함)
