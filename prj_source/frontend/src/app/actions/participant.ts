@@ -1,46 +1,57 @@
 'use server'
 
-import { db } from '@/database/db'
-import { participants, partySessions } from '@/database/schema'
-import { eq, sql } from 'drizzle-orm'
+import { createClient } from '@/lib/supabase-server'
 
 export async function registerParticipant(anonymousId: string, nickname: string) {
   try {
-    // 1. 활성화된 세션 확인 (없으면 생성 - MVP 편의를 위해)
-    let session = await db.query.partySessions.findFirst({
-      where: eq(partySessions.status, 'ONGOING')
-    })
+    const supabase = await createClient()
 
-    if (!session) {
+    // 1. 활성화된 세션 확인 (없으면 생성 - MVP 편의를 위해)
+    const { data: session, error: sessionError } = await supabase
+      .from('party_sessions')
+      .select('*')
+      .eq('status', 'ONGOING')
+      .single()
+
+    let activeSession = session
+
+    if (!activeSession) {
       // 테스트용 세션 강제 생성
-      const [newSession] = await db.insert(partySessions).values({
-        title: "환영 파티",
-        startTime: new Date(),
-        endTime: new Date(Date.now() + 3600000), // 1시간 후
-        status: 'ONGOING'
-      }).returning()
-      session = newSession
+      const { data: newSession, error: createError } = await supabase
+        .from('party_sessions')
+        .insert({
+          title: "환영 파티",
+          start_time: new Date().toISOString(),
+          end_time: new Date(Date.now() + 3600000).toISOString(),
+          status: 'ONGOING'
+        })
+        .select()
+        .single()
+
+      if (createError) throw createError
+      activeSession = newSession
     }
 
     // 2. 참여자 정보 저장 (upsert)
-    const [participant] = await db.insert(participants).values({
-      sessionId: session.id,
-      anonymousId: anonymousId,
-      nickname: nickname,
-      nicknameChangeCount: 1,
-    })
-    .onConflictDoUpdate({
-      target: participants.anonymousId,
-      set: { 
+    // anonymous_id를 기준으로 중복 확인 및 닉네임 업데이트
+    const { data: participant, error: upsertError } = await supabase
+      .from('participants')
+      .upsert({
+        session_id: activeSession.id,
+        anonymous_id: anonymousId,
         nickname: nickname,
-        nicknameChangeCount: sql`nickname_change_count + 1` 
-      }
-    })
-    .returning()
+        last_active: new Date().toISOString()
+      }, {
+        onConflict: 'anonymous_id'
+      })
+      .select()
+      .single()
+
+    if (upsertError) throw upsertError
 
     return { success: true, participant }
-  } catch (error) {
+  } catch (error: any) {
     console.error('참여자 등록 에러:', error)
-    return { success: false, error: '등록에 실패했습니다.' }
+    return { success: false, error: error.message || '등록에 실패했습니다.' }
   }
 }

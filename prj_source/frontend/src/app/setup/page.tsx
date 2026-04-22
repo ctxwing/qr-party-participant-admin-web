@@ -39,7 +39,7 @@ export default function SetupPage() {
     setSubmitting(true)
     try {
       const result = await registerParticipant(user.id, nickname.trim())
-      
+
       if (result.success && result.participant) {
         setParticipant({
           id: result.participant.id,
@@ -91,12 +91,12 @@ export default function SetupPage() {
               </p>
             </CardContent>
             <CardFooter>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full h-12 text-lg font-bold bg-primary hover:bg-primary/90"
                 disabled={submitting}
               >
-                {submitting ? '설정 중...' : '파티 시작하기'}
+                {submitting ? '설정 중...' : '파티 참가 시작하기'}
               </Button>
             </CardFooter>
           </form>
