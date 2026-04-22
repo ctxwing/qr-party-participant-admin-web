@@ -11,6 +11,8 @@ import { Play, Square, Users, MessageSquare, AlertCircle, CheckCircle2, Music, U
 import { createClient } from '@/lib/supabase'
 import { AgGridReact } from 'ag-grid-react'
 import { AllCommunityModule, ModuleRegistry, ColDef } from 'ag-grid-community'
+import 'ag-grid-community/styles/ag-grid.css'
+import 'ag-grid-community/styles/ag-theme-alpine.css'
 
 ModuleRegistry.registerModules([AllCommunityModule])
 
@@ -328,7 +330,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 {filterUnapplied ? "전체 보기" : "2차 미신청자만 보기"}
               </Button>
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 pb-6">
+            <CardContent className="flex-1 min-h-0 pb-6 overflow-hidden">
               <div className="ag-theme-alpine-dark w-full h-full">
                 <AgGridReact
                   rowData={filteredParticipants}
@@ -336,11 +338,13 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   pagination={true}
                   paginationPageSize={10}
                   paginationPageSizeSelector={[10, 20, 50]}
+                  rowHeight={48}
                   theme="legacy"
                   defaultColDef={{
                     resizable: true,
                     sortable: true,
-                    filter: true
+                    filter: true,
+                    cellStyle: { display: 'flex', alignItems: 'center' }
                   }}
                 />
               </div>
