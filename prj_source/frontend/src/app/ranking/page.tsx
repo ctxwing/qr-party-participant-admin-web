@@ -5,13 +5,15 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, Award, Heart } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { ChevronLeft, Award, Heart, MessageSquare } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
 export default function RankingPage() {
   const router = useRouter()
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentWeights, setCurrentWeights] = useState<any>({ like: 1, message: 5, cupid: 10 })
   const supabase = createClient()
 
   const fetchRankings = async () => {
@@ -19,6 +21,7 @@ export default function RankingPage() {
       // 가중치 설정 가져오기
       const { data: settings } = await supabase.from('system_settings').select('value').eq('key', 'ranking_weights').maybeSingle()
       const weights = settings?.value || { like: 1, message: 5, cupid: 10 }
+      setCurrentWeights(weights)
 
       const { data: participants } = await supabase.from('participants').select('id, nickname')
       const { data: interactions } = await supabase.from('interactions').select('receiver_id, type')
@@ -63,11 +66,26 @@ export default function RankingPage() {
   return (
     <div className="min-h-screen bg-background p-4 flex flex-col items-center">
       <div className="w-full max-w-md space-y-8 pt-8">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full">
-            <ChevronLeft className="w-6 h-6" />
-          </Button>
-          <h1 className="text-3xl font-bold">인기 랭킹</h1>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full">
+              <ChevronLeft className="w-6 h-6" />
+            </Button>
+            <h1 className="text-3xl font-bold">인기 랭킹</h1>
+          </div>
+          
+          {/* 랭킹 기준 뱃지 */}
+          <div className="flex flex-wrap gap-2 px-2">
+            <Badge variant="outline" className="bg-like/5 text-like border-like/20 py-1">
+              <Heart className="w-3 h-3 mr-1 fill-current" /> 좋아요 +{currentWeights.like}
+            </Badge>
+            <Badge variant="outline" className="bg-blue-500/5 text-blue-400 border-blue-500/20 py-1">
+              <MessageSquare className="w-3 h-3 mr-1" /> 쪽지 +{currentWeights.message}
+            </Badge>
+            <Badge variant="outline" className="bg-yellow-500/5 text-yellow-500 border-yellow-500/20 py-1">
+              <Award className="w-3 h-3 mr-1" /> 큐피트 +{currentWeights.cupid}
+            </Badge>
+          </div>
         </div>
 
         {/* Podium Area */}
