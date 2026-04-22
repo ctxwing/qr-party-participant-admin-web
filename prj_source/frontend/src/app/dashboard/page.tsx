@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { MessageCircle, Heart, Zap, Award, AlertTriangle } from 'lucide-react'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 // Mock Data (T013에서 실제 API 연동 예정)
 const mockParticipants = [
@@ -26,12 +27,27 @@ export default function DashboardPage() {
   const [message, setMessage] = useState('')
 
   const handleInteraction = (type: 'CUPID' | 'LIKE') => {
+    if (!participant?.id) return
+    const { allowed, remaining } = checkRateLimit(participant.id)
+    
+    if (!allowed) {
+      toast.error(`${remaining}초 후에 다시 시도해주세요.`)
+      return
+    }
+
     toast.success(`${selectedUser?.nickname}님에게 ${type === 'CUPID' ? '큐피트' : '호감도'}를 보냈습니다!`)
     setSelectedUser(null)
   }
 
   const handleSendMessage = () => {
-    if (!message.trim()) return
+    if (!message.trim() || !participant?.id) return
+    const { allowed, remaining } = checkRateLimit(participant.id)
+    
+    if (!allowed) {
+      toast.error(`${remaining}초 후에 다시 시도해주세요.`)
+      return
+    }
+
     toast.success(`${selectedUser?.nickname}님에게 쪽지를 보냈습니다.`)
     setMessage('')
     setSelectedUser(null)

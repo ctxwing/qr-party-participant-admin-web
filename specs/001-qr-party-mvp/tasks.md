@@ -93,11 +93,11 @@
     - [x] 3_prj_docs/완료내역/TASK_T013_완료내역.md 작성 (테스트 성공 결과 포함)
     - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
     - [x] 한글 메시지로 git commit 및 git push 수행
-- [ ] T014 [US2] 상호작용 시 3초당 1회 제한(Rate Limit) 로직 적용 및 토스트 알림 연동
-    - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
-    - [ ] 3_prj_docs/완료내역/TASK_T014_완료내역.md 작성 (테스트 성공 결과 포함)
-    - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
-    - [ ] 한글 메시지로 git commit 및 git push 수행
+- [x] T014 [US2] 상호작용 시 3초당 1회 제한(Rate Limit) 로직 적용 및 토스트 알림 연동
+    - [x] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
+    - [x] 3_prj_docs/완료내역/TASK_T014_완료내역.md 작성 (테스트 성공 결과 포함)
+    - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
+    - [x] 한글 메시지로 git commit 및 git push 수행
 
 ## Phase 5: User Story 3 - 파티 관리 및 운영 (Admin)
 
