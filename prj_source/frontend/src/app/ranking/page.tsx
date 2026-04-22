@@ -6,7 +6,8 @@ import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ChevronLeft, Award, Heart, MessageSquare } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { ChevronLeft, Award, Heart, MessageSquare, Star, Zap } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
 export default function RankingPage() {
@@ -14,6 +15,7 @@ export default function RankingPage() {
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [currentWeights, setCurrentWeights] = useState<any>({ like: 1, message: 5, cupid: 10 })
+  const [selectedParticipant, setSelectedParticipant] = useState<any>(null)
   const supabase = createClient()
 
   const fetchRankings = async () => {
@@ -114,7 +116,14 @@ export default function RankingPage() {
         {/* Ranking List */}
         <div className="space-y-3">
           {items.map((p, idx) => (
-            <motion.div key={p.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <motion.div 
+              key={p.id} 
+              layout 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }}
+              onClick={() => setSelectedParticipant({ ...p, rank: idx + 1 })}
+              className="cursor-pointer active:scale-95 transition-transform"
+            >
               <Card className={`glass border-none ${idx < 3 ? 'bg-primary/5' : ''}`}>
                 <CardContent className="p-4 flex justify-between items-center">
                   <div className="flex items-center gap-4">
@@ -139,6 +148,49 @@ export default function RankingPage() {
           ))}
         </div>
       </div>
+
+      {/* 참여자 상세 정보 팝업 */}
+      <Dialog open={!!selectedParticipant} onOpenChange={() => setSelectedParticipant(null)}>
+        <DialogContent className="max-w-[90vw] rounded-2xl border-none glass bg-background/80 backdrop-blur-xl">
+          <DialogHeader className="items-center pb-4">
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4 relative">
+              <span className="text-3xl font-black text-primary">{selectedParticipant?.nickname[0]}</span>
+              <div className="absolute -bottom-1 -right-1 bg-yellow-500 text-white w-8 h-8 rounded-full flex items-center justify-center border-4 border-background font-black text-sm">
+                {selectedParticipant?.rank}
+              </div>
+            </div>
+            <DialogTitle className="text-2xl font-black">{selectedParticipant?.nickname}</DialogTitle>
+            <DialogDescription className="text-primary font-bold">인기 랭킹 {selectedParticipant?.rank}위</DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 gap-3 py-4">
+            <div className="bg-primary/5 rounded-xl p-4 flex flex-col items-center gap-1">
+              <Star className="w-5 h-5 text-primary fill-current" />
+              <p className="text-[10px] opacity-50 font-bold uppercase">Popularity Score</p>
+              <p className="text-2xl font-black">{selectedParticipant?.score}</p>
+            </div>
+            <div className="bg-like/5 rounded-xl p-4 flex flex-col items-center gap-1">
+              <Heart className="w-5 h-5 text-like fill-current" />
+              <p className="text-[10px] opacity-50 font-bold uppercase">Likes Received</p>
+              <p className="text-2xl font-black">{selectedParticipant?.lCount}</p>
+            </div>
+            <div className="bg-blue-500/5 rounded-xl p-4 flex flex-col items-center gap-1">
+              <MessageSquare className="w-5 h-5 text-blue-500" />
+              <p className="text-[10px] opacity-50 font-bold uppercase">Messages</p>
+              <p className="text-2xl font-black">{selectedParticipant?.mCount}</p>
+            </div>
+            <div className="bg-yellow-500/5 rounded-xl p-4 flex flex-col items-center gap-1">
+              <Zap className="w-5 h-5 text-yellow-500 fill-current" />
+              <p className="text-[10px] opacity-50 font-bold uppercase">Cupid Matches</p>
+              <p className="text-2xl font-black">{selectedParticipant?.cCount}</p>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button className="flex-1 h-12 rounded-xl font-bold" onClick={() => setSelectedParticipant(null)}>확인</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
