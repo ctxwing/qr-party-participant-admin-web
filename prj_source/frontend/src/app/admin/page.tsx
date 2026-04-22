@@ -180,9 +180,10 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const handleToggleSession = async () => {
     const nextStatus = sessionStatus === 'ONGOING' ? 'FINISHED' : 'ONGOING'
     if (nextStatus === 'ONGOING') {
-      await supabase.from('party_sessions').insert({ status: 'ONGOING', title: 'Party', start_time: new Date().toISOString() })
+      const title = prompt('행사명을 입력하세요', '오늘의 파티') || '오늘의 파티'
+      await supabase.from('party_sessions').insert({ status: 'ONGOING', title, start_time: new Date().toISOString() })
     } else {
-      await supabase.from('party_sessions').update({ status: 'FINISHED' }).eq('status', 'ONGOING')
+      await supabase.from('party_sessions').update({ status: 'FINISHED', end_time: new Date().toISOString() }).eq('status', 'ONGOING')
     }
     setSessionStatus(nextStatus)
     toast.success(`세션 ${nextStatus}`)
@@ -200,7 +201,24 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       field: 'nickname', 
       headerName: '닉네임', 
       flex: 1,
-      cellRenderer: (params: any) => <span className="font-bold">{params.value}</span>
+      cellRenderer: (params: any) => (
+        <div className="flex flex-col py-1">
+          <span className="font-bold">{params.value}</span>
+          <span className="text-[9px] opacity-30 font-mono">{params.data.id.split('-')[0]}...</span>
+        </div>
+      )
+    },
+    { 
+      field: 'created_at', 
+      headerName: '가입일', 
+      width: 110,
+      valueFormatter: (params) => params.value ? new Date(params.value).toLocaleDateString() : '-'
+    },
+    { 
+      field: 'last_participated_at', 
+      headerName: '참여일', 
+      width: 110,
+      valueFormatter: (params) => params.value ? new Date(params.value).toLocaleDateString() : '-'
     },
     { 
       field: 'is_first_applied', 
