@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { MessageCircle, Heart, Zap, Award, AlertTriangle } from 'lucide-react'
 import { checkRateLimit } from '@/lib/rateLimit'
+import Link from 'next/link'
 
 // Mock Data (T013에서 실제 API 연동 예정)
 const mockParticipants = [
@@ -26,7 +27,15 @@ export default function DashboardPage() {
   const [selectedUser, setSelectedUser] = useState<{id: string, nickname: string} | null>(null)
   const [message, setMessage] = useState('')
 
+  const triggerHaptic = () => {
+    const isEnabled = process.env.NEXT_PUBLIC_ENABLE_VIBRATION !== 'OFF'
+    if (isEnabled && typeof window !== 'undefined' && window.navigator.vibrate) {
+      window.navigator.vibrate(10)
+    }
+  }
+
   const handleInteraction = (type: 'CUPID' | 'LIKE') => {
+    triggerHaptic()
     if (!participant?.id) return
     const { allowed, remaining } = checkRateLimit(participant.id)
     
@@ -160,19 +169,24 @@ export default function DashboardPage() {
         <Button 
           size="lg" 
           className="rounded-full shadow-2xl bg-sos hover:bg-sos/90 pointer-events-auto h-14 px-6 gap-2"
-          onClick={() => toast.error('관리자에게 SOS 요청을 보냈습니다!')}
+          onClick={() => {
+            triggerHaptic()
+            toast.error('관리자에게 SOS 요청을 보냈습니다!')
+          }}
         >
           <AlertTriangle className="w-5 h-5" />
           <span className="font-bold">SOS</span>
         </Button>
-        <Button 
-          size="lg" 
-          className="rounded-full shadow-2xl bg-primary hover:bg-primary/90 pointer-events-auto h-14 px-6 gap-2"
-          onClick={() => toast.info('실시간 랭킹은 현재 준비 중입니다.')}
-        >
-          <Award className="w-5 h-5" />
-          <span className="font-bold">RANKING</span>
-        </Button>
+        <Link href="/ranking" className="pointer-events-auto">
+          <Button 
+            size="lg" 
+            className="rounded-full shadow-2xl bg-primary hover:bg-primary/90 h-14 px-6 gap-2"
+            onClick={triggerHaptic}
+          >
+            <Award className="w-5 h-5" />
+            <span className="font-bold">RANKING</span>
+          </Button>
+        </Link>
       </div>
     </div>
   )

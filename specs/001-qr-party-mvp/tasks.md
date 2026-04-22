@@ -136,11 +136,11 @@
     - [x] 3_prj_docs/완료내역/TASK_T019_완료내역.md 작성 (테스트 성공 결과 포함)
     - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
     - [x] 한글 메시지로 git commit 및 git push 수행
-- [ ] T020 모바일 브라우저 한 손 조작(Thumb Zone) 최적화 및 FAB 메뉴 동작 정밀 조정
-    - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
-    - [ ] 3_prj_docs/완료내역/TASK_T020_완료내역.md 작성 (테스트 성공 결과 포함)
-    - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
-    - [ ] 한글 메시지로 git commit 및 git push 수행
+- [x] T020 모바일 브라우저 한 손 조작(Thumb Zone) 최적화 및 FAB 메뉴 동작 정밀 조정
+    - [x] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
+    - [x] 3_prj_docs/완료내역/TASK_T020_완료내역.md 작성 (테스트 성공 결과 포함)
+    - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
+    - [x] 한글 메시지로 git commit 및 git push 수행
 - [ ] T021 배포를 위한 Dockerfile 작성 및 `.dockerignore` 설정 (standalone 빌드 최적화)
     - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
     - [ ] 3_prj_docs/완료내역/TASK_T021_완료내역.md 작성 (테스트 성공 결과 포함)
