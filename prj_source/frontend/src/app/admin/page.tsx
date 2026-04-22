@@ -122,6 +122,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [participants, setParticipants] = useState<any[]>([])
   const [messages, setMessages] = useState<any[]>([])
   const [filterUnapplied, setFilterUnapplied] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
   
   const supabase = createClient()
 
@@ -187,9 +188,11 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     toast.success(`세션 ${nextStatus}`)
   }
 
-  const filteredParticipants = filterUnapplied 
-    ? participants.filter(p => !p.is_second_applied) 
-    : participants
+  const filteredParticipants = participants.filter(p => {
+    const matchesFilter = filterUnapplied ? !p.is_second_applied : true
+    const matchesSearch = p.nickname?.toLowerCase().includes(searchTerm.toLowerCase())
+    return matchesFilter && matchesSearch
+  })
 
   // AG Grid Column Definitions
   const columnDefs: ColDef[] = [
@@ -322,34 +325,44 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="participants">
-          <Card className="bg-slate-900 border-slate-800 text-slate-50 h-[600px] flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between shrink-0">
-              <div><CardTitle>참여자 리스트</CardTitle><CardDescription>1차/2차 신청 상태 및 횟수 관리</CardDescription></div>
-              <Button variant={filterUnapplied ? "default" : "outline"} onClick={() => setFilterUnapplied(!filterUnapplied)}>
+        <TabsContent value="participants" className="space-y-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="relative w-full md:w-72">
+              <Input 
+                placeholder="닉네임으로 검색..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-slate-900 border-slate-800 pr-10"
+              />
+              <Users className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant={filterUnapplied ? "default" : "outline"} onClick={() => setFilterUnapplied(!filterUnapplied)} size="sm">
                 {filterUnapplied ? "전체 보기" : "2차 미신청자만 보기"}
               </Button>
-            </CardHeader>
-            <CardContent className="flex-1 min-h-0 pb-6 overflow-hidden">
-              <div className="ag-theme-alpine-dark w-full h-full">
-                <AgGridReact
-                  rowData={filteredParticipants}
-                  columnDefs={columnDefs}
-                  pagination={true}
-                  paginationPageSize={10}
-                  paginationPageSizeSelector={[10, 20, 50]}
-                  rowHeight={48}
-                  theme="legacy"
-                  defaultColDef={{
-                    resizable: true,
-                    sortable: true,
-                    filter: true,
-                    cellStyle: { display: 'flex', alignItems: 'center' }
-                  }}
-                />
-              </div>
-            </CardContent>
-          </Card>
+              <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">
+                총 {filteredParticipants.length}명
+              </Badge>
+            </div>
+          </div>
+
+          <div className="ag-theme-alpine-dark w-full h-[600px] rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
+            <AgGridReact
+              rowData={filteredParticipants}
+              columnDefs={columnDefs}
+              pagination={true}
+              paginationPageSize={20}
+              paginationPageSizeSelector={[10, 20, 50, 100]}
+              rowHeight={48}
+              theme="legacy"
+              defaultColDef={{
+                resizable: true,
+                sortable: true,
+                filter: true,
+                cellStyle: { display: 'flex', alignItems: 'center' }
+              }}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="messages">
