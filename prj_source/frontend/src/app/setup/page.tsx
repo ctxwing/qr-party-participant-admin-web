@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { toast } from 'sonner'
+import { registerParticipant } from '@/app/actions/participant'
 
 export default function SetupPage() {
   const router = useRouter()
@@ -30,20 +31,28 @@ export default function SetupPage() {
       return
     }
 
+    if (!user) {
+      toast.error('인증 정보가 없습니다. 다시 시도해주세요.')
+      return
+    }
+
     setSubmitting(true)
     try {
-      // TODO: 실제 DB 연동 (T009에서 구현)
-      // 현재는 Mock으로 처리
-      const mockParticipant = {
-        id: user?.id || 'temp-id',
-        nickname: nickname.trim(),
-        nicknameChangeCount: 1
-      }
+      const result = await registerParticipant(user.id, nickname.trim())
       
-      setParticipant(mockParticipant)
-      toast.success('닉네임 설정이 완료되었습니다!')
-      router.push('/dashboard')
+      if (result.success && result.participant) {
+        setParticipant({
+          id: result.participant.id,
+          nickname: result.participant.nickname,
+          nicknameChangeCount: result.participant.nicknameChangeCount
+        })
+        toast.success('닉네임 설정이 완료되었습니다!')
+        router.push('/dashboard')
+      } else {
+        toast.error(result.error || '등록에 실패했습니다.')
+      }
     } catch (error) {
+      console.error(error)
       toast.error('닉네임 설정 중 오류가 발생했습니다.')
     } finally {
       setSubmitting(false)
