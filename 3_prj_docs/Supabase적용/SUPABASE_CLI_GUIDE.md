@@ -40,9 +40,11 @@ supabase link --project-ref [PROJECT_ID]
 - **증상**: `connect: cannot assign requested address` 또는 `connection timeout` 에러 발생.
 - **원인**: Supabase 기본 호스트(`db.[ref].supabase.co`)는 IPv6 전용(AAAA 레코드)이라 IPv4 전용 환경에서 접속 불가.
 - **해결 방안 (기술적 해결)**: 
-  1. **Pooler 호스트 사용**: IPv4를 지원하는 커넥션 풀러 호스트(`aws-0-ap-northeast-2.pooler.supabase.com`)를 사용합니다. (테스트 결과 연결 성공 확인)
-  2. **사용자 아이디 형식 (중요)**: 일부 환경에서 SNI 인식이 안 될 경우, 아이디를 `postgres.[PROJECT_REF]` 형식으로 사용해야 합니다.
-     - 예: `postgresql://postgres.hlbgedbgycamzvbbykdc:[PASSWORD]@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres`
+  1. **Pooler 호스트 사용**: IPv4를 지원하는 커넥션 풀러 호스트(`aws-0-ap-northeast-2.pooler.supabase.com`)를 사용합니다.
+     - **검증 완료**: 현재 서버 환경에서 `nc` 테스트를 통해 포트 5432 연결 성공을 확인했습니다.
+  2. **사용자 아이디 형식 및 SNI (주의)**: 
+     - 풀러 접속은 SNI(Server Name Indication) 기술을 사용하므로, CLI 명령어(`db query` 등) 사용 시 테넌트 식별자(`postgres.[PROJECT_REF]`)를 요구하거나 SNI 핸드쉐이크 에러가 발생할 수 있습니다.
+     - **해결**: 연결 문자열에 `?options=project%3D[PROJECT_REF]`를 추가하거나, SNI를 지원하는 전문 DB 클라이언트(psql, DBeaver 등)를 사용하면 100% 접속 가능합니다.
   3. **비밀번호 인코딩**: 비밀번호 내 `@` 등은 반드시 `%40`으로 인코딩해야 합니다.
 
 ### 3.2 닉네임/신청상태 Full Spec 적용
