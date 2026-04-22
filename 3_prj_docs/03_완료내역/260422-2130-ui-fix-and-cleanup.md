@@ -2,10 +2,10 @@
 
 **날짜**: 2026-04-22
 **작업 내용**:
-- `DashboardPage`: `DialogTrigger`의 중첩 렌더링 오류 수정 및 UI 정리.
-- `AdminDashboard`: 알림(Alerts) 목록의 메시지 표시 로직 단순화 및 가독성 개선.
-- `migration_alerts_receiver.sql`: 불필요한 마이그레이션 스크립트 삭제.
-- 노래 신청 및 쪽지 보내기 로직의 사용자 경험(UX) 개선.
+- `DashboardPage`: 지정 상대방에게 노래 요청 기능 복구 및 `DialogTrigger` 렌더링 수정.
+- `AdminDashboard`: 알림 피드에서 보낸 이 -> 받는 이 관계 표시 복구.
+- `migration_alerts_receiver.sql`: 수신자 필드 추가 스크립트 복구.
+- 상호작용 쿨타임(Rate Limit) 상태 관리 추가 및 버그 수정.
 
 **상세 변경 사항**:
 1. **참여자 대시보드 (`dashboard/page.tsx`)**:

@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [openInteractionId, setOpenInteractionId] = useState<string | null>(null)
+  const [lastInteractionTime, setLastInteractionTime] = useState(0)
   
   const supabase = createClient()
 
@@ -186,22 +187,44 @@ export default function DashboardPage() {
     }
   }
 
-  const handleSongRequest = async () => {
-    triggerHaptic()
-    if (!participant?.id) return
-
-    const { data: session } = await supabase.from('party_sessions').select('id').eq('status', 'ONGOING').single()
+  const handleSongRequest = async (receiverId?: string) => {
+    if (!participant || !sessionId) return
     
+    // 쿨타임 체크
+    const now = Date.now()
+    if (now - lastInteractionTime < 3000) {
+      toast.error('상호작용이 너무 잦습니다. 3초 후 다시 시도해주세요.')
+      return
+    }
+
+    if (!songTitle.trim()) {
+      toast.error('신청할 곡 제목을 입력해주세요.')
+      return
+    }
+
+    setLastInteractionTime(now)
+    triggerHaptic()
+
+    const targetNickname = receiverId ? participants.find(p => p.id === receiverId)?.nickname : null
+    const alertMessage = receiverId 
+      ? `🎵 ${targetNickname}님에게 노래를 신청했습니다: ${songTitle.trim()}`
+      : `🎵 노래 신청: ${songTitle.trim()}`
+
     const { error } = await supabase.from('alerts').insert({
       type: 'MUSIC',
       participant_id: participant.id,
-      session_id: session?.id,
-      message: songTitle.trim() ? `🎵 노래 요청: ${songTitle}` : `🎵 노래 틀어주세요!`
+      receiver_id: receiverId || null,
+      session_id: sessionId,
+      message: alertMessage
     })
 
     if (!error) {
-      toast.success('노래 요청을 보냈습니다!')
+      toast.success(receiverId ? `${targetNickname}님에게 노래를 요청했습니다!` : '노래 신청을 보냈습니다!')
       setSongTitle('')
+      if (receiverId) {
+        setSelectedUser(null)
+        setOpenInteractionId(null)
+      }
     }
   }
 
@@ -370,18 +393,35 @@ export default function DashboardPage() {
                       </div>
                     </Button>
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold text-muted-foreground px-1">익명 쪽지 보내기</p>
-                    <div className="flex gap-2">
-                      <Input 
-                        placeholder="쪽지 내용을 입력하세요..." 
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        className="glass border-none"
-                      />
-                      <Button size="icon" onClick={handleSendMessage}>
-                        <MessageCircle className="w-4 h-4" />
-                      </Button>
+                  <div className="space-y-4 border-t border-white/5 pt-4">
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-muted-foreground px-1">🎵 {p.nickname}님에게 노래 요청</p>
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="곡 제목을 입력하세요..." 
+                          value={songTitle}
+                          onChange={(e) => setSongTitle(e.target.value)}
+                          className="glass border-none"
+                        />
+                        <Button onClick={() => handleSongRequest(p.id)}>
+                          요청
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-muted-foreground px-1">📩 익명 쪽지 보내기</p>
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="쪽지 내용을 입력하세요..." 
+                          value={message}
+                          onChange={(e) => setMessage(e.target.value)}
+                          className="glass border-none"
+                        />
+                        <Button size="icon" onClick={handleSendMessage}>
+                          <MessageCircle className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </DialogContent>
@@ -442,7 +482,7 @@ export default function DashboardPage() {
                 onChange={(e) => setSongTitle(e.target.value)}
                 className="glass border-none"
               />
-              <Button className="w-full font-bold h-12" onClick={handleSongRequest}>신청하기</Button>
+              <Button className="w-full font-bold h-12" onClick={() => handleSongRequest()}>신청하기</Button>
             </div>
           </DialogContent>
         </Dialog>
