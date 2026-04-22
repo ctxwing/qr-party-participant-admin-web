@@ -1,0 +1,46 @@
+# Dependencies
+node_modules
+.npm
+.yarn
+.pnp
+.pnp.js
+
+# Build outputs
+.next
+out
+build
+dist
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+docs
+3_prj_docs
+specs
+1_prd
+0_groundzero
+
+# Local config
+.env*.local
+.vscode
+.idea
+*.log
+
+# Project specific
+Dockerfile
+.dockerignore
+README.md
+CHANGELOG.md
+AGENTS.md
+CLAUDE.md
+openspec
+.agent
+.agents
+.gemini
+.kilocode
+.opencode
+.qwen
+.specify
