@@ -9,6 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { Play, Square, Users, MessageSquare, AlertCircle, CheckCircle2, Music, UserCog, History, Lock, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
+import { AgGridReact } from 'ag-grid-react'
+import { AllCommunityModule, ModuleRegistry, ColDef } from 'ag-grid-community'
+
+ModuleRegistry.registerModules([AllCommunityModule])
 
 export default function AdminPage() {
   const [user, setUser] = useState<any>(null)
@@ -115,7 +119,6 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [alerts, setAlerts] = useState<any[]>([])
   const [participants, setParticipants] = useState<any[]>([])
   const [messages, setMessages] = useState<any[]>([])
-  const [announcement, setAnnouncement] = useState('')
   const [filterUnapplied, setFilterUnapplied] = useState(false)
   
   const supabase = createClient()
@@ -136,7 +139,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   }, [])
 
   const fetchInitialData = async () => {
-    const { data: session } = await supabase.from('party_sessions').select('status').eq('status', 'ONGOING').single()
+    const { data: session } = await supabase.from('party_sessions').select('status').eq('status', 'ONGOING').maybeSingle()
     setSessionStatus(session?.status as any || 'READY')
 
     await Promise.all([fetchParticipants(), fetchMessages(), fetchAlerts()])
@@ -185,6 +188,77 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const filteredParticipants = filterUnapplied 
     ? participants.filter(p => !p.is_second_applied) 
     : participants
+
+  // AG Grid Column Definitions
+  const columnDefs: ColDef[] = [
+    { 
+      field: 'nickname', 
+      headerName: '닉네임', 
+      flex: 1,
+      cellRenderer: (params: any) => <span className="font-bold">{params.value}</span>
+    },
+    { 
+      field: 'is_first_applied', 
+      headerName: '1차', 
+      width: 80,
+      cellRenderer: (params: any) => (
+        <Badge 
+          onClick={() => handleToggleApply(params.data.id, 'is_first_applied', params.value)} 
+          className="cursor-pointer" 
+          variant={params.value ? 'default' : 'secondary'}
+        >
+          {params.value ? 'O' : 'X'}
+        </Badge>
+      )
+    },
+    { 
+      field: 'is_second_applied', 
+      headerName: '2차', 
+      width: 80,
+      cellRenderer: (params: any) => (
+        <Badge 
+          onClick={() => handleToggleApply(params.data.id, 'is_second_applied', params.value)} 
+          className="cursor-pointer" 
+          variant={params.value ? 'default' : 'secondary'}
+        >
+          {params.value ? 'O' : 'X'}
+        </Badge>
+      )
+    },
+    { 
+      field: 'cupid_count', 
+      headerName: '큐피트', 
+      width: 120,
+      cellRenderer: (params: any) => (
+        <div className="flex items-center gap-2 h-full">
+          <button className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center hover:bg-slate-700" onClick={() => handleUpdateCount(params.data.id, 'cupid_count', (params.value || 0) - 1)}>-</button>
+          <span className="w-4 text-center">{params.value || 0}</span>
+          <button className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center hover:bg-slate-700" onClick={() => handleUpdateCount(params.data.id, 'cupid_count', (params.value || 0) + 1)}>+</button>
+        </div>
+      )
+    },
+    { 
+      field: 'like_count', 
+      headerName: '호감도', 
+      width: 120,
+      cellRenderer: (params: any) => (
+        <div className="flex items-center gap-2 h-full">
+          <button className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center hover:bg-slate-700" onClick={() => handleUpdateCount(params.data.id, 'like_count', (params.value || 0) - 1)}>-</button>
+          <span className="w-4 text-center">{params.value || 0}</span>
+          <button className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center hover:bg-slate-700" onClick={() => handleUpdateCount(params.data.id, 'like_count', (params.value || 0) + 1)}>+</button>
+        </div>
+      )
+    },
+    {
+      headerName: '액션',
+      width: 80,
+      cellRenderer: () => (
+        <div className="flex items-center h-full">
+          <Button size="icon" variant="ghost" className="h-8 w-8"><UserCog className="w-4 h-4" /></Button>
+        </div>
+      )
+    }
+  ]
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 p-6 space-y-8">
@@ -247,60 +321,28 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         </TabsContent>
 
         <TabsContent value="participants">
-          <Card className="bg-slate-900 border-slate-800 text-slate-50">
-            <CardHeader className="flex flex-row items-center justify-between">
+          <Card className="bg-slate-900 border-slate-800 text-slate-50 h-[600px] flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between shrink-0">
               <div><CardTitle>참여자 리스트</CardTitle><CardDescription>1차/2차 신청 상태 및 횟수 관리</CardDescription></div>
               <Button variant={filterUnapplied ? "default" : "outline"} onClick={() => setFilterUnapplied(!filterUnapplied)}>
                 {filterUnapplied ? "전체 보기" : "2차 미신청자만 보기"}
               </Button>
             </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead><tr className="border-b border-slate-800 text-left"><th className="p-3">닉네임</th><th className="p-3">1차</th><th className="p-3">2차</th><th className="p-3">큐피트</th><th className="p-3">호감도</th><th className="p-3">액션</th></tr></thead>
-                  <tbody>
-                    {filteredParticipants.map(p => (
-                      <tr key={p.id} className="border-b border-slate-800/50 hover:bg-slate-800/20">
-                        <td className="p-3 font-bold">{p.nickname}</td>
-                        <td className="p-3">
-                          <Badge 
-                            onClick={() => handleToggleApply(p.id, 'is_first_applied', p.is_first_applied)} 
-                            className="cursor-pointer" 
-                            variant={p.is_first_applied ? 'default' : 'secondary'}
-                          >
-                            {p.is_first_applied ? 'O' : 'X'}
-                          </Badge>
-                        </td>
-                        <td className="p-3">
-                          <Badge 
-                            onClick={() => handleToggleApply(p.id, 'is_second_applied', p.is_second_applied)} 
-                            className="cursor-pointer" 
-                            variant={p.is_second_applied ? 'default' : 'secondary'}
-                          >
-                            {p.is_second_applied ? 'O' : 'X'}
-                          </Badge>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <button className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center hover:bg-slate-700" onClick={() => handleUpdateCount(p.id, 'cupid_count', (p.cupid_count || 0) - 1)}>-</button>
-                            <span className="w-4 text-center">{p.cupid_count || 0}</span>
-                            <button className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center hover:bg-slate-700" onClick={() => handleUpdateCount(p.id, 'cupid_count', (p.cupid_count || 0) + 1)}>+</button>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <button className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center hover:bg-slate-700" onClick={() => handleUpdateCount(p.id, 'like_count', (p.like_count || 0) - 1)}>-</button>
-                            <span className="w-4 text-center">{p.like_count || 0}</span>
-                            <button className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center hover:bg-slate-700" onClick={() => handleUpdateCount(p.id, 'like_count', (p.like_count || 0) + 1)}>+</button>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <Button size="icon" variant="ghost" className="h-8 w-8"><UserCog className="w-4 h-4" /></Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <CardContent className="flex-1 min-h-0 pb-6">
+              <div className="ag-theme-alpine-dark w-full h-full">
+                <AgGridReact
+                  rowData={filteredParticipants}
+                  columnDefs={columnDefs}
+                  pagination={true}
+                  paginationPageSize={10}
+                  paginationPageSizeSelector={[10, 20, 50]}
+                  theme="legacy"
+                  defaultColDef={{
+                    resizable: true,
+                    sortable: true,
+                    filter: true
+                  }}
+                />
               </div>
             </CardContent>
           </Card>
