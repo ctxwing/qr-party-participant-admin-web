@@ -75,4 +75,32 @@ runAdminTest()
 > **보안 주의**: `SUPABASE_SERVICE_ROLE_KEY`는 절대로 클라이언트 측에서 사용하지 마십시오.
 
 ---
+
+## 5. Supabase Personal Access Token (PAT) 발급 및 활용
+
+CLI를 통한 데이터베이스 관리나 자동화된 마이그레이션을 위해 개인 액세스 토큰이 필요합니다. 특히 개발 환경의 네트워크 방화벽으로 인해 DB 포트(5432) 접속이 차단된 경우, 이 토큰을 활용한 Management API 통신이 유일한 해결책이 될 수 있습니다.
+
+### 5.1 토큰 발급 단계
+1.  **Supabase 대시보드**에 접속하여 로그인합니다.
+2.  왼쪽 하단의 **Account 아이콘**을 클릭하고 **[Account Settings]**를 선택합니다.
+3.  사이드바 메뉴에서 **[Access Tokens]** 항목을 클릭합니다.
+4.  **[Generate new token]** 버튼을 클릭합니다.
+5.  토큰의 용도(예: `CLI-Access-Token`)를 입력하고 **[Confirm]**을 누릅니다.
+6.  **[중요]** 생성된 토큰 문자열을 **즉시 복사하여 안전한 곳에 보관**하십시오. (창을 닫으면 다시 확인할 수 없습니다.)
+
+### 5.2 CLI 활용 방법
+토큰을 발급받은 후, 터미널 환경 변수로 설정하면 CLI 명령 시 매번 로그인할 필요가 없습니다.
+```bash
+# 환경 변수 설정
+export SUPABASE_ACCESS_TOKEN=your_token_here
+
+# 프로젝트 연결 (포트 제한 없이 HTTP API 사용 가능)
+supabase link --project-ref your_project_id
+```
+
+### 5.3 보안 권장사항
+- 토큰은 프로젝트 소유자의 권한을 그대로 가지므로 절대 공개적인 곳에 노출하지 마십시오.
+- `service_role` 키와 혼동하지 마십시오. PAT는 사용자 계정 자체의 인증 토큰입니다.
+
+---
 **최종 업데이트**: 2026-04-22
