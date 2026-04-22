@@ -28,6 +28,8 @@ export default function DashboardPage() {
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [openInteractionId, setOpenInteractionId] = useState<string | null>(null)
+  const [songTitle, setSongTitle] = useState('')
+  const [sosMessage, setSosMessage] = useState('')
   
   const supabase = createClient()
 
@@ -37,7 +39,6 @@ export default function DashboardPage() {
     fetchMyStats()
     fetchActiveSession()
 
-    // 실시간 업데이트 구독 (참여자 목록 및 스탯)
     const channel = supabase.channel('dashboard-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, () => {
         fetchParticipants()
@@ -74,12 +75,10 @@ export default function DashboardPage() {
   const fetchMyStats = async () => {
     if (!participant?.id) return
     
-    // 내가 받은 스탯 (쪽지, 큐피트, 호감도)
     const { count: mCount } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', participant.id)
     const { count: cCount } = await supabase.from('interactions').select('*', { count: 'exact', head: true }).eq('receiver_id', participant.id).eq('type', 'CUPID')
     const { count: lCount } = await supabase.from('interactions').select('*', { count: 'exact', head: true }).eq('receiver_id', participant.id).eq('type', 'LIKE')
     
-    // 내 프로필 정보 (남은 횟수 및 신청 상태)
     const { data: me } = await supabase.from('participants').select('*').eq('id', participant.id).single()
 
     setStats({
@@ -113,7 +112,6 @@ export default function DashboardPage() {
       return
     }
 
-    // 1. 상호작용 기록 추가
     const { error: insError } = await supabase.from('interactions').insert({
       type,
       sender_id: participant.id,
@@ -126,7 +124,6 @@ export default function DashboardPage() {
       return
     }
 
-    // 2. 내 횟수 차감
     await supabase.from('participants')
       .update({ [countField]: myProfile[countField] - 1 })
       .eq('id', participant.id)
@@ -163,10 +160,6 @@ export default function DashboardPage() {
     }
   }
 
-  const [songTitle, setSongTitle] = useState('')
-
-  const [sosMessage, setSosMessage] = useState('')
-
   const handleSOS = async () => {
     triggerHaptic()
     if (!participant?.id) return
@@ -186,22 +179,32 @@ export default function DashboardPage() {
     }
   }
 
-  const handleSongRequest = async () => {
+  const handleSongRequest = async (receiverId?: string) => {
     triggerHaptic()
     if (!participant?.id) return
 
     const { data: session } = await supabase.from('party_sessions').select('id').eq('status', 'ONGOING').single()
     
+    const targetNickname = participants.find(p => p.id === receiverId)?.nickname
+    const alertMessage = receiverId 
+      ? `🎵 [요청] ${participant.nickname}님이 ${targetNickname}님에게 노래를 요청했습니다: ${songTitle.trim() || '노래 한 곡 부탁해요!'}`
+      : `🎵 [신청] ${participant.nickname}님이 노래를 신청했습니다: ${songTitle.trim() || '신곡 틀어주세요!'}`
+
     const { error } = await supabase.from('alerts').insert({
       type: 'MUSIC',
       participant_id: participant.id,
+      receiver_id: receiverId || null,
       session_id: session?.id,
-      message: songTitle.trim() ? `🎵 노래 요청: ${songTitle}` : `🎵 노래 틀어주세요!`
+      message: alertMessage
     })
 
     if (!error) {
-      toast.success('노래 요청을 보냈습니다!')
+      toast.success(receiverId ? `${targetNickname}님에게 노래를 요청했습니다!` : '노래 신청을 보냈습니다!')
       setSongTitle('')
+      if (receiverId) {
+        setSelectedUser(null)
+        setOpenInteractionId(null)
+      }
     }
   }
 
@@ -325,21 +328,20 @@ export default function DashboardPage() {
             {participants.map((p) => (
               <Dialog key={p.id} open={openInteractionId === p.id} onOpenChange={(open) => setOpenInteractionId(open ? p.id : null)}>
                 <DialogTrigger 
-                  nativeButton={false}
                   render={
                     <Card 
                       className="glass border-none hover:bg-white/10 transition-all cursor-pointer active:scale-95 group"
                       onClick={() => setSelectedUser(p)}
-                    />
+                    >
+                      <CardContent className="p-4 flex flex-col items-center gap-2">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-bold text-xl group-hover:scale-110 transition-transform shadow-lg">
+                          {p.nickname[0]}
+                        </div>
+                        <p className="font-bold text-sm truncate w-full text-center">{p.nickname}</p>
+                      </CardContent>
+                    </Card>
                   }
-                >
-                  <CardContent className="p-4 flex flex-col items-center gap-2">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-bold text-xl group-hover:scale-110 transition-transform shadow-lg">
-                      {p.nickname[0]}
-                    </div>
-                    <p className="font-bold text-sm truncate w-full text-center">{p.nickname}</p>
-                  </CardContent>
-                </DialogTrigger>
+                />
                 <DialogContent className="glass border-none max-w-[90%] rounded-2xl">
                   <DialogHeader>
                     <DialogTitle className="text-center text-2xl font-bold">
@@ -370,18 +372,36 @@ export default function DashboardPage() {
                       </div>
                     </Button>
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold text-muted-foreground px-1">익명 쪽지 보내기</p>
-                    <div className="flex gap-2">
-                      <Input 
-                        placeholder="쪽지 내용을 입력하세요..." 
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        className="glass border-none"
-                      />
-                      <Button size="icon" onClick={handleSendMessage}>
-                        <MessageCircle className="w-4 h-4" />
-                      </Button>
+                  
+                  <div className="space-y-4 border-t border-white/5 pt-4">
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-muted-foreground px-1">🎵 {p.nickname}님에게 노래 요청</p>
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="곡 제목을 입력하세요..." 
+                          value={songTitle}
+                          onChange={(e) => setSongTitle(e.target.value)}
+                          className="glass border-none"
+                        />
+                        <Button onClick={() => handleSongRequest(p.id)}>
+                          요청
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-muted-foreground px-1">📩 익명 쪽지 보내기</p>
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="쪽지 내용을 입력하세요..." 
+                          value={message}
+                          onChange={(e) => setMessage(e.target.value)}
+                          className="glass border-none"
+                        />
+                        <Button size="icon" onClick={handleSendMessage}>
+                          <MessageCircle className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </DialogContent>
@@ -398,11 +418,11 @@ export default function DashboardPage() {
               <Button 
                 className="rounded-full shadow-2xl bg-sos hover:bg-sos/90 pointer-events-auto h-14 w-14 p-0 flex items-center justify-center cursor-pointer"
                 onClick={triggerHaptic}
-              />
+              >
+                <AlertTriangle className="w-5 h-5 animate-pulse text-white" />
+              </Button>
             }
-          >
-            <AlertTriangle className="w-5 h-5 animate-pulse text-white" />
-          </DialogTrigger>
+          />
           <DialogContent className="glass border-none max-w-[90%] rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-center text-xl font-bold">도움이 필요하신가요? 🚨</DialogTitle>
@@ -425,12 +445,12 @@ export default function DashboardPage() {
               <Button 
                 className="rounded-full shadow-2xl bg-blue-500 hover:bg-blue-600 pointer-events-auto h-14 px-6 gap-2 flex items-center justify-center cursor-pointer"
                 onClick={triggerHaptic}
-              />
+              >
+                <Zap className="w-5 h-5 fill-current text-white" />
+                <span className="font-bold uppercase tracking-tight text-white">Music</span>
+              </Button>
             }
-          >
-            <Zap className="w-5 h-5 fill-current text-white" />
-            <span className="font-bold uppercase tracking-tight text-white">Music</span>
-          </DialogTrigger>
+          />
           <DialogContent className="glass border-none max-w-[90%] rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-center text-xl font-bold">노래를 신청하시겠어요? 🎵</DialogTitle>
@@ -442,7 +462,7 @@ export default function DashboardPage() {
                 onChange={(e) => setSongTitle(e.target.value)}
                 className="glass border-none"
               />
-              <Button className="w-full font-bold h-12" onClick={handleSongRequest}>신청하기</Button>
+              <Button className="w-full font-bold h-12" onClick={() => handleSongRequest()}>신청하기</Button>
             </div>
           </DialogContent>
         </Dialog>
