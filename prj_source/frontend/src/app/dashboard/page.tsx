@@ -105,6 +105,7 @@ export default function DashboardPage() {
             {mockParticipants.map((p) => (
               <Dialog key={p.id}>
                 <DialogTrigger 
+                  nativeButton={false}
                   render={
                     <Card 
                       className="glass border-none hover:bg-white/10 transition-all cursor-pointer active:scale-95"
