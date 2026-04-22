@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Play, Square, Users, MessageSquare, AlertCircle, CheckCircle2, Music, UserCog, History, Lock, Eye, EyeOff, Calendar, Fingerprint, ShieldCheck } from 'lucide-react'
+import { Play, Square, Users, MessageSquare, AlertCircle, CheckCircle2, Music, UserCog, History, Lock, Eye, EyeOff, Calendar, Fingerprint, ShieldCheck, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { AgGridReact } from 'ag-grid-react'
 import { AllCommunityModule, ModuleRegistry, ColDef } from 'ag-grid-community'
@@ -125,6 +125,8 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [filterUnapplied, setFilterUnapplied] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null)
+  const [participantStats, setParticipantStats] = useState<any>({ received: 0, sent: 0, songs: 0, sos: 0 })
+  const [nicknameHistory, setNicknameHistory] = useState<any[]>([])
   
   const supabase = createClient()
 
@@ -142,6 +144,12 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
     return () => { supabase.removeChannel(channel) }
   }, [])
+
+  useEffect(() => {
+    if (selectedParticipant) {
+      fetchParticipantDetails(selectedParticipant.id)
+    }
+  }, [selectedParticipant])
 
   const fetchInitialData = async () => {
     const { data: session } = await supabase.from('party_sessions').select('status').eq('status', 'ONGOING').maybeSingle()
@@ -163,6 +171,25 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const fetchAlerts = async () => {
     const { data } = await supabase.from('alerts').select('*, participants(nickname)').order('created_at', { ascending: false })
     if (data) setAlerts(data)
+  }
+
+  const fetchParticipantDetails = async (id: string) => {
+    // 쪽지 및 알람 통계 조회
+    const [received, sent, alertData, history] = await Promise.all([
+      supabase.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', id),
+      supabase.from('messages').select('*', { count: 'exact', head: true }).eq('sender_id', id),
+      supabase.from('alerts').select('type').eq('participant_id', id),
+      supabase.from('nickname_history').select('*').eq('participant_id', id).order('created_at', { ascending: false })
+    ])
+
+    setParticipantStats({
+      received: received.count || 0,
+      sent: sent.count || 0,
+      songs: alertData.data?.filter(a => a.type === 'MUSIC').length || 0,
+      sos: alertData.data?.filter(a => a.type === 'SOS').length || 0
+    })
+
+    setNicknameHistory(history.data || [])
   }
 
   const handleUpdateCount = async (id: string, field: string, value: number) => {
@@ -418,7 +445,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
       {/* 참여자 상세 정보 모달 */}
       <Dialog open={!!selectedParticipant} onOpenChange={() => setSelectedParticipant(null)}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-slate-50 max-w-md">
+        <DialogContent className="bg-slate-900 border-slate-800 text-slate-50 max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-2xl font-black">
               <UserCog className="text-blue-400" />
@@ -451,6 +478,52 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     <p className="text-[10px] text-slate-500 uppercase font-bold">최근참여</p>
                     <p className="text-xs">{selectedParticipant.last_participated_at ? new Date(selectedParticipant.last_participated_at).toLocaleString() : '-'}</p>
                   </div>
+                </div>
+
+                {/* 활동 통계 */}
+                <div className="p-4 bg-slate-950 rounded-lg border border-slate-800 space-y-3">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold border-b border-slate-800 pb-1 mb-2">활동 통계</p>
+                  <div className="grid grid-cols-2 gap-y-3 gap-x-6">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-400 flex items-center gap-2"><MessageSquare className="w-3 h-3" /> 받은 쪽지</span>
+                      <span className="font-bold text-blue-400">{participantStats.received}개</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-400 flex items-center gap-2"><MessageSquare className="w-3 h-3 opacity-50" /> 보낸 쪽지</span>
+                      <span className="font-bold">{participantStats.sent}개</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-400 flex items-center gap-2"><Music className="w-3 h-3" /> 노래 신청</span>
+                      <span className="font-bold text-green-400">{participantStats.songs}회</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-400 flex items-center gap-2"><AlertCircle className="w-3 h-3" /> SOS 요청</span>
+                      <span className="font-bold text-red-400">{participantStats.sos}회</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 닉네임 변경 이력 */}
+                <div className="p-4 bg-slate-950 rounded-lg border border-slate-800 space-y-3">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold border-b border-slate-800 pb-1 mb-2 flex items-center gap-2">
+                    <History className="w-3 h-3" /> 닉네임 변경 이력
+                  </p>
+                  {nicknameHistory.length === 0 ? (
+                    <p className="text-xs text-slate-600 italic">변경 이력이 없습니다.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {nicknameHistory.map((h, i) => (
+                        <div key={i} className="flex justify-between items-center text-[11px] p-2 bg-slate-900/50 rounded border border-slate-800/50">
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-500 line-through">{h.old_nickname}</span>
+                            <ArrowRight className="w-3 h-3 text-slate-600" />
+                            <span className="font-bold text-blue-300">{h.new_nickname}</span>
+                          </div>
+                          <span className="text-slate-600">{new Date(h.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
