@@ -131,6 +131,12 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   
   const supabase = createClient()
 
+  const PRESETS: any = {
+    balanced: { name: '기본형', desc: '균형 잡힌 점수 산정', weights: { like: 1, message: 5, cupid: 10 } },
+    talkative: { name: '소통 중심', desc: '쪽지 소통에 높은 배점', weights: { like: 1, message: 20, cupid: 10 } },
+    matching: { name: '매칭 중심', desc: '큐피트 성공에 높은 배점', weights: { like: 1, message: 5, cupid: 50 } }
+  }
+
   useEffect(() => {
     fetchInitialData()
 
@@ -169,6 +175,11 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     if (!error) {
       toast.success('랭킹 가중치가 저장되었습니다.')
     }
+  }
+
+  const handleApplyPreset = (presetWeights: any) => {
+    setWeights(presetWeights)
+    toast.info('프리셋 수치가 적용되었습니다. 하단 저장 버튼을 눌러 확정하세요.')
   }
 
   const fetchParticipants = async () => {
@@ -463,16 +474,36 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               </CardTitle>
               <CardDescription>랭킹 산정 가중치 및 시스템 전역 설정을 관리합니다.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4 max-w-md">
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">랭킹 가중치 설정</h3>
+            <CardContent className="space-y-8">
+              {/* 프리셋 선택 섹션 */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <Play className="w-3 h-3 text-blue-500" /> 랭킹 프리셋 선택
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {Object.entries(PRESETS).map(([key, p]: [string, any]) => (
+                    <button 
+                      key={key}
+                      onClick={() => handleApplyPreset(p.weights)}
+                      className="p-4 bg-slate-950 border border-slate-800 rounded-xl text-left hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group"
+                    >
+                      <p className="font-bold group-hover:text-blue-400">{p.name}</p>
+                      <p className="text-xs text-slate-500">{p.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 세부 설정 섹션 */}
+              <div className="space-y-4 max-w-md bg-slate-950 p-6 rounded-xl border border-slate-800">
+                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">세부 가중치 설정</h3>
                 <div className="grid grid-cols-2 gap-4 items-center">
                   <label className="text-sm">좋아요 (Like)</label>
                   <Input 
                     type="number" 
                     value={weights.like} 
                     onChange={(e) => setWeights({...weights, like: parseInt(e.target.value)})}
-                    className="bg-slate-950 border-slate-800"
+                    className="bg-slate-900 border-slate-800"
                   />
                   
                   <label className="text-sm">쪽지 수신 (Message)</label>
@@ -480,7 +511,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     type="number" 
                     value={weights.message} 
                     onChange={(e) => setWeights({...weights, message: parseInt(e.target.value)})}
-                    className="bg-slate-950 border-slate-800"
+                    className="bg-slate-900 border-slate-800"
                   />
                   
                   <label className="text-sm">큐피트 매칭 (Cupid)</label>
@@ -488,10 +519,12 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     type="number" 
                     value={weights.cupid} 
                     onChange={(e) => setWeights({...weights, cupid: parseInt(e.target.value)})}
-                    className="bg-slate-950 border-slate-800"
+                    className="bg-slate-900 border-slate-800"
                   />
                 </div>
-                <Button className="w-full mt-4" onClick={handleUpdateWeights}>설정 저장</Button>
+                <Button className="w-full mt-4 bg-blue-600 hover:bg-blue-500" onClick={handleUpdateWeights}>
+                  설정 저장 및 적용
+                </Button>
               </div>
             </CardContent>
           </Card>
