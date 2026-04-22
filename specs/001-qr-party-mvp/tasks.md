@@ -78,11 +78,11 @@
 **Goal**: 참여자 간 실시간 소통과 호감도 표시, 순위 확인 기능을 제공한다.
 **Test**: 쪽지 발송 시 1초 내 수신 확인, 호감도 순위 실시간 변동 확인.
 
-- [ ] T011 [P] [US2] `prj_source/frontend/hooks/useSupabaseRealtime.ts` 실시간 데이터 구독 훅 구현
-    - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
-    - [ ] 3_prj_docs/완료내역/TASK_T011_완료내역.md 작성 (테스트 성공 결과 포함)
-    - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
-    - [ ] 한글 메시지로 git commit 및 git push 수행
+- [x] T011 [P] [US2] `prj_source/frontend/hooks/useSupabaseRealtime.ts` 실시간 데이터 구독 훅 구현
+    - [x] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
+    - [x] 3_prj_docs/완료내역/TASK_T011_완료내역.md 작성 (테스트 성공 결과 포함)
+    - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
+    - [x] 한글 메시지로 git commit 및 git push 수행
 - [ ] T012 [US2] `prj_source/frontend/app/dashboard/page.tsx` 참여자 리스트 및 상호작용 모달 구현
     - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
     - [ ] 3_prj_docs/완료내역/TASK_T012_완료내역.md 작성 (테스트 성공 결과 포함)
