@@ -390,16 +390,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     <div className="flex items-center gap-3">
                       {a.type === 'SOS' ? <AlertCircle className="text-red-500" /> : <Music className="text-blue-500" />}
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-primary">{a.sender?.nickname || '시스템'}</span>
-                          {a.receiver?.nickname && (
-                            <>
-                              <ArrowRight className="w-3 h-3 text-slate-500" />
-                              <span className="font-bold text-blue-400">{a.receiver.nickname}</span>
-                            </>
-                          )}
-                        </div>
-                        <p className="text-sm mt-1">{a.message.split(':').slice(1).join(':') || a.message}</p>
+                        <p className="font-bold">{a.participants?.nickname || '시스템'} : {a.message}</p>
                         <p className="text-[10px] opacity-50">{new Date(a.created_at).toLocaleTimeString()}</p>
                       </div>
                     </div>
