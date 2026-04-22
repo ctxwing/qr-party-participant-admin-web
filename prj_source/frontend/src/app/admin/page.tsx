@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
-import { Play, Square, Users, MessageSquare, AlertCircle, CheckCircle2, Music, UserCog, History, Lock, Eye, EyeOff } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Play, Square, Users, MessageSquare, AlertCircle, CheckCircle2, Music, UserCog, History, Lock, Eye, EyeOff, Calendar, Fingerprint, ShieldCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { AgGridReact } from 'ag-grid-react'
 import { AllCommunityModule, ModuleRegistry, ColDef } from 'ag-grid-community'
@@ -123,6 +124,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [messages, setMessages] = useState<any[]>([])
   const [filterUnapplied, setFilterUnapplied] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedParticipant, setSelectedParticipant] = useState<any>(null)
   
   const supabase = createClient()
 
@@ -277,9 +279,16 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     {
       headerName: '액션',
       width: 80,
-      cellRenderer: () => (
+      cellRenderer: (params: any) => (
         <div className="flex items-center h-full">
-          <Button size="icon" variant="ghost" className="h-8 w-8"><UserCog className="w-4 h-4" /></Button>
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            className="h-8 w-8 hover:bg-blue-500/20 text-blue-400"
+            onClick={() => setSelectedParticipant(params.data)}
+          >
+            <UserCog className="w-4 h-4" />
+          </Button>
         </div>
       )
     }
@@ -406,6 +415,79 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* 참여자 상세 정보 모달 */}
+      <Dialog open={!!selectedParticipant} onOpenChange={() => setSelectedParticipant(null)}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-slate-50 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-2xl font-black">
+              <UserCog className="text-blue-400" />
+              참여자 상세 정보
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {selectedParticipant?.nickname}님의 시스템 기록입니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedParticipant && (
+            <div className="space-y-6 py-4">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-3 bg-slate-950 rounded-lg border border-slate-800">
+                  <Fingerprint className="w-5 h-5 text-slate-500" />
+                  <div className="flex-1">
+                    <p className="text-[10px] text-slate-500 uppercase font-bold">Unique UUID</p>
+                    <p className="text-xs font-mono break-all text-blue-300">{selectedParticipant.id}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+                    <Calendar className="w-4 h-4 text-slate-500 mb-1" />
+                    <p className="text-[10px] text-slate-500 uppercase font-bold">가입일시</p>
+                    <p className="text-xs">{new Date(selectedParticipant.created_at).toLocaleString()}</p>
+                  </div>
+                  <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+                    <History className="w-4 h-4 text-slate-500 mb-1" />
+                    <p className="text-[10px] text-slate-500 uppercase font-bold">최근참여</p>
+                    <p className="text-xs">{selectedParticipant.last_participated_at ? new Date(selectedParticipant.last_participated_at).toLocaleString() : '-'}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 flex justify-between items-center">
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold">1차 신청</p>
+                      <p className="text-sm font-bold">{selectedParticipant.is_first_applied ? '신청완료' : '미신청'}</p>
+                    </div>
+                    {selectedParticipant.is_first_applied && <ShieldCheck className="text-green-500 w-5 h-5" />}
+                  </div>
+                  <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 flex justify-between items-center">
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold">2차 신청</p>
+                      <p className="text-sm font-bold">{selectedParticipant.is_second_applied ? '신청완료' : '미신청'}</p>
+                    </div>
+                    {selectedParticipant.is_second_applied && <ShieldCheck className="text-green-500 w-5 h-5" />}
+                  </div>
+                </div>
+
+                <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20 flex justify-around">
+                  <div className="text-center">
+                    <p className="text-[10px] text-blue-400 uppercase font-bold">큐피트 횟수</p>
+                    <p className="text-2xl font-black text-blue-50">{selectedParticipant.cupid_count || 0}</p>
+                  </div>
+                  <div className="w-[1px] bg-blue-500/20" />
+                  <div className="text-center">
+                    <p className="text-[10px] text-blue-400 uppercase font-bold">호감 표시</p>
+                    <p className="text-2xl font-black text-blue-50">{selectedParticipant.like_count || 0}</p>
+                  </div>
+                </div>
+              </div>
+
+              <Button className="w-full" onClick={() => setSelectedParticipant(null)}>확인</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
