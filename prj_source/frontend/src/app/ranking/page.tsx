@@ -30,18 +30,15 @@ export default function RankingPage() {
       if (!participants) return
 
       const rankings = participants.map(p => {
-        // 상호작용 점수 (좋아요, 큐피트 등)
-        const interactionScore = interactions
-          ?.filter(i => i.receiver_id === p.id)
-          ?.reduce((acc, curr) => {
-            const w = curr.type === 'CUPID' ? (weights.cupid || 10) : (weights.like || 1);
-            return acc + w;
-          }, 0) || 0
+        const lCount = interactions?.filter(i => i.receiver_id === p.id && i.type === 'LIKE').length || 0
+        const cCount = interactions?.filter(i => i.receiver_id === p.id && i.type === 'CUPID').length || 0
+        const mCount = messages?.filter(m => m.receiver_id === p.id).length || 0
+        
+        const score = (lCount * (weights.like || 1)) + 
+                      (mCount * (weights.message || 5)) + 
+                      (cCount * (weights.cupid || 10))
 
-        // 쪽지 수신 점수
-        const messageScore = (messages?.filter(m => m.receiver_id === p.id).length || 0) * (weights.message || 5)
-
-        return { id: p.id, nickname: p.nickname, score: interactionScore + messageScore }
+        return { id: p.id, nickname: p.nickname, score, lCount, mCount, cCount }
       })
 
       setItems(rankings.sort((a, b) => b.score - a.score))
@@ -125,9 +122,16 @@ export default function RankingPage() {
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">{p.nickname[0]}</div>
                     <p className="font-bold">{p.nickname}</p>
                   </div>
-                  <div className="flex items-center gap-1 text-like">
-                    <Heart className="w-4 h-4 fill-current" />
-                    <span className="font-bold">{p.score}</span>
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-1 text-primary">
+                      <Award className="w-4 h-4" />
+                      <span className="text-lg font-black">{p.score}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] opacity-40">
+                      <span className="flex items-center gap-0.5"><Heart className="w-2.5 h-2.5 fill-current" /> {p.lCount}</span>
+                      <span className="flex items-center gap-0.5"><MessageSquare className="w-2.5 h-2.5" /> {p.mCount}</span>
+                      <span className="flex items-center gap-0.5"><Award className="w-2.5 h-2.5" /> {p.cCount}</span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
