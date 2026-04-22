@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { Play, Square, Users, MessageSquare, AlertCircle, CheckCircle2 } from 'lucide-react'
 
@@ -17,6 +18,14 @@ export default function AdminDashboard() {
   const [sessionStatus, setSessionStatus] = useState<'READY' | 'ONGOING' | 'FINISHED'>('ONGOING')
   const [sosRequests, setSosRequests] = useState(initialSosRequests)
 
+  const [announcement, setAnnouncement] = useState('')
+
+  const handleSendAnnouncement = () => {
+    if (!announcement.trim()) return
+    toast.success('전체 공지사항이 발송되었습니다: ' + announcement)
+    setAnnouncement('')
+  }
+
   const handleToggleSession = () => {
     const nextStatus = sessionStatus === 'ONGOING' ? 'FINISHED' : 'ONGOING'
     setSessionStatus(nextStatus)
@@ -29,7 +38,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 p-6 space-y-8">
+    <div className="min-h-screen bg-slate-950 text-slate-50 p-6 space-y-8 pb-20">
       {/* Admin Header */}
       <div className="flex justify-between items-center max-w-6xl mx-auto">
         <div>
@@ -50,6 +59,24 @@ export default function AdminDashboard() {
           </Button>
         </div>
       </div>
+
+      {/* Global Announcement Section */}
+      <Card className="max-w-6xl mx-auto bg-primary/10 border-primary/20 text-slate-50">
+        <CardContent className="p-6 flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex-1 space-y-2">
+            <p className="text-xs font-bold text-primary uppercase flex items-center gap-2">
+              <MessageSquare className="w-3 h-3" /> Broadcast Announcement
+            </p>
+            <Input 
+              placeholder="모든 참여자에게 보낼 공지사항을 입력하세요..." 
+              className="bg-slate-900 border-slate-800"
+              value={announcement}
+              onChange={(e) => setAnnouncement(e.target.value)}
+            />
+          </div>
+          <Button onClick={handleSendAnnouncement} className="font-bold px-8">SEND BROADCAST</Button>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
         {/* Stat Cards */}
