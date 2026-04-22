@@ -36,13 +36,13 @@ supabase link --project-ref [PROJECT_ID]
 
 ## 3. 프로젝트 내 적용 현황 및 트러블슈팅
 
-### 3.1 네트워크 제약 사항 (중요)
+### 3.1 네트워크 제약 사항 (IPv6 관련)
 - **증상**: `connect: cannot assign requested address` 또는 `connection timeout` 에러 발생.
-- **원인**: 현재 개발 서버 환경에서 외부 5432/6543 포트 접속이 방화벽으로 차단되었거나 IPv6 라우팅 이슈가 있음.
-- **해결 방안**: 
-  1. 외부망 접속이 가능한 환경에서 CLI 실행.
-  2. Supabase Dashboard의 SQL Editor를 직접 활용.
-  3. (향후 도입) Supabase Management API 토큰을 발급받아 포트 제한 없이 HTTP를 통해 스키마 업데이트 수행.
+- **원인**: Supabase 기본 호스트(`db.[ref].supabase.co`)는 IPv6 전용(AAAA 레코드)인 경우가 많아, IPv4 전용 환경(현재 개발 서버 등)에서 접속 불가.
+- **해결 방안 (기술적 해결)**: 
+  1. **Pooler 호스트 사용**: IPv4 주소를 지원하는 커넥션 풀러 호스트(`aws-0-ap-northeast-2.pooler.supabase.com`)를 사용합니다.
+  2. **포트 설정**: 동일하게 `5432` 포트를 사용하며, 연결 문자열의 호스트 부분만 교체합니다.
+  3. **비밀번호 인코딩**: 비밀번호에 `@` 등 특수문자가 포함된 경우 반드시 `%40` 등으로 인코딩해야 합니다.
 
 ### 3.2 닉네임/신청상태 Full Spec 적용
 현재 프로젝트의 요구사항(닉네임 3회 제한, 1/2차 신청 상태 관리)을 반영하기 위해 `src/scripts/migration_full_spec.sql` 파일을 CLI를 통해 실행하여 DB 구조를 고도화하였습니다.
