@@ -2,7 +2,7 @@
 
 ## 필수 요구사항
 - **Node.js**: v22+ (Bun 사용)
-- **Database**: SQLite (개발용)
+- **Database**: Supabase/PostgreSQL (Drizzle ORM)
 
 ## 로컬 개발 환경 설정
 
@@ -19,7 +19,7 @@ bun dev
 ```bash
 cd prj_source/database
 bun install
-bun run db:push  # SQLite 스키마 동기화
+bun run db:push  # Supabase 스키마 동기화 (drizzle-kit push)
 ```
 
 ## 주요 기능 테스트 방법

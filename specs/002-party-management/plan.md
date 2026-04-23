@@ -68,9 +68,14 @@ prj_source/
 │   │   │   └── supabase.ts      # Supabase 클라이언트
 │   │   └── store/               # Zustand 상태 관리
 └── database/
-    ├── schema.ts         # Drizzle 스키마 정의
-    └── data.db           # SQLite (개발용)
+    ├── schema.ts         # Drizzle 스키마 정의 (parties, announcements 등)
+    └── migrations/       # [필요] Supabase 반영을 위한 마이그레이션 파일
 ```
+
+**Database Status (2026-04-23)**:
+- 본 프로젝트는 처음부터 Supabase(PostgreSQL)를 단일 데이터베이스로 사용하며, SQLite는 사용하지 않습니다.
+- 현재 Supabase 실운영 환경에는 PoC용 테이블(`participants`, `interactions`)만 존재하며, 신규 정의된 `parties` 관련 스키마는 아직 반영되지 않았습니다.
+- 상용화 배포 전 `drizzle-kit push` 등을 통한 Supabase 스키마 동기화가 필수적입니다.
 
 **Structure Decision**: Next.js 기반의 Full-stack 구조를 채택하며, 모든 소스는 `./prj_source` 하위에 배치합니다.
 
