@@ -349,6 +349,12 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
   const alertColumnDefs: ColDef[] = [
     { 
+      field: 'created_at', 
+      headerName: '시간', 
+      width: 160,
+      valueFormatter: (params) => formatDate(params.value)
+    },
+    { 
       field: 'type', 
       headerName: '구분', 
       width: 100,
@@ -371,12 +377,6 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       cellRenderer: (params: any) => <span className="text-sm opacity-90">{params.value.split(':').slice(1).join(':') || params.value}</span>
     },
     { 
-      field: 'created_at', 
-      headerName: '시간', 
-      width: 160,
-      valueFormatter: (params) => formatDate(params.value)
-    },
-    { 
       field: 'resolved', 
       headerName: '해결', 
       width: 100,
@@ -394,6 +394,12 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   ]
 
   const messageColumnDefs: ColDef[] = [
+    { 
+      field: 'created_at', 
+      headerName: '시간', 
+      width: 160,
+      valueFormatter: (params) => formatDate(params.value)
+    },
     { 
       headerName: '보낸이', 
       width: 150,
@@ -418,12 +424,6 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       headerName: '내용', 
       flex: 1,
       cellRenderer: (params: any) => <span className="text-sm">{params.value}</span>
-    },
-    { 
-      field: 'created_at', 
-      headerName: '시간', 
-      width: 160,
-      valueFormatter: (params) => formatDate(params.value)
     }
   ]
 
@@ -541,9 +541,9 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           </div>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="glass border-white/10 hover:bg-white/5 h-12 w-48 font-bold" onClick={onLogout}>LOGOUT</Button>
+          <Button variant="outline" className="btn-glass-premium bg-white/5 border-white/10 h-12 w-48 font-bold" onClick={onLogout}>LOGOUT</Button>
           <Button 
-            className={`h-12 w-48 font-black rounded-xl transition-all shadow-xl ${sessionStatus === 'ONGOING' ? 'bg-zinc-800 hover:bg-zinc-700 text-white border border-white/10' : 'bg-vibrant-gradient'}`}
+            className={`h-12 w-48 font-black rounded-xl transition-all shadow-xl flex items-center justify-center gap-2 ${sessionStatus === 'ONGOING' ? 'bg-white/5 backdrop-blur-xl border border-white/10 text-white/60 hover:bg-white/10' : 'bg-vibrant-gradient text-white hover:scale-105 active:scale-95 shadow-indigo-500/20'}`}
             onClick={handleToggleSession}
           >
             {sessionStatus === 'ONGOING' ? (
@@ -564,7 +564,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           <TabsList className="bg-white/5 border border-white/10 p-1.5 h-auto rounded-full flex flex-wrap md:flex-nowrap gap-1 items-center justify-center backdrop-blur-md">
             <TabsTrigger value="dashboard" className="rounded-full px-6 md:px-10 py-2 md:py-3 data-[state=active]:bg-vibrant-gradient data-[state=active]:text-white data-[state=active]:shadow-lg text-sm md:text-lg font-bold transition-all hover:bg-white/5">현황판</TabsTrigger>
             <TabsTrigger value="participants" className="rounded-full px-6 md:px-10 py-2 md:py-3 data-[state=active]:bg-vibrant-gradient data-[state=active]:text-white data-[state=active]:shadow-lg text-sm md:text-lg font-bold transition-all hover:bg-white/5">참여자 관리</TabsTrigger>
-            <TabsTrigger value="messages" className="rounded-full px-6 md:px-10 py-2 md:py-3 data-[state=active]:bg-vibrant-gradient data-[state=active]:text-white data-[state=active]:shadow-lg text-sm md:text-lg font-bold transition-all hover:bg-white/5">쪽지 모니터링</TabsTrigger>
+            <TabsTrigger value="messages" className="rounded-full px-6 md:px-10 py-2 md:py-3 data-[state=active]:bg-vibrant-gradient data-[state=active]:text-white data-[state=active]:shadow-lg text-sm md:text-lg font-bold transition-all hover:bg-white/5">참여자간 쪽지</TabsTrigger>
             <TabsTrigger value="settings" className="rounded-full px-6 md:px-10 py-2 md:py-3 data-[state=active]:bg-vibrant-gradient data-[state=active]:text-white data-[state=active]:shadow-lg text-sm md:text-lg font-bold transition-all hover:bg-white/5">시스템 설정</TabsTrigger>
           </TabsList>
         </div>
@@ -709,7 +709,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               <div className="flex justify-between items-center">
                 <CardTitle className="text-xl font-black flex items-center gap-2">
                   <MessageSquare className="w-5 h-5 text-primary" />
-                  전체 쪽지 실시간 모니터링
+                  참여자간 쪽지 모니터링
                 </CardTitle>
                 <div className="flex items-center gap-3">
                   <Badge variant="outline" className="text-white/40 border-white/10">{messages.length} Messages</Badge>

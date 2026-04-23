@@ -31,7 +31,7 @@ function SosForm({ onSubmit, onClose }: { onSubmit: (msg: string) => void, onClo
           <span className={sosMessage.length >= MAX_LEN ? 'text-destructive font-bold' : ''}>{sosMessage.length}</span>/{MAX_LEN}
         </div>
       </div>
-      <Button variant="destructive" className="w-full font-bold h-14 text-lg" onClick={() => {
+      <Button className="w-full btn-glass-sos font-bold h-14 text-lg" onClick={() => {
         if (!sosMessage.trim()) {
           toast.error('내용을 입력해주세요.')
           return
@@ -60,7 +60,7 @@ function GlobalMusicForm({ onSubmit, onClose }: { onSubmit: (title: string) => v
           <span className={songTitle.length >= MAX_LEN ? 'text-destructive font-bold' : ''}>{songTitle.length}</span>/{MAX_LEN}
         </div>
       </div>
-      <Button className="w-full font-bold h-14 text-lg" onClick={() => {
+      <Button className="w-full bg-vibrant-gradient text-white font-bold h-14 text-lg border-none" onClick={() => {
         if (!songTitle.trim()) {
           toast.error('곡 제목을 입력해주세요.')
           return
@@ -89,7 +89,7 @@ function ParticipantMusicForm({ onSubmit, onClose }: { onSubmit: (title: string)
           {songTitle.length}/{MAX_LEN}
         </div>
       </div>
-      <Button className="w-full font-bold" onClick={() => {
+      <Button className="w-full bg-vibrant-gradient text-white font-bold border-none" onClick={() => {
         if (!songTitle.trim()) {
           toast.error('곡 제목을 입력해주세요.')
           return
@@ -120,7 +120,7 @@ function ParticipantMessageForm({ onSubmit, onClose }: { onSubmit: (msg: string)
           {message.length}/{MAX_LEN}
         </div>
       </div>
-      <Button className="w-full font-bold flex gap-2 items-center justify-center" onClick={() => {
+      <Button className="w-full bg-vibrant-gradient text-white font-bold flex gap-2 items-center justify-center border-none" onClick={() => {
         if (!message.trim()) {
           toast.error('내용을 입력해주세요.')
           return
@@ -566,7 +566,7 @@ export default function DashboardPage() {
           <DialogTrigger 
             render={
               <Button 
-                className="rounded-full shadow-2xl bg-sos hover:bg-sos/90 pointer-events-auto h-14 w-14 p-0 flex items-center justify-center cursor-pointer"
+                className="rounded-full btn-glass-sos pointer-events-auto h-14 w-14 p-0 cursor-pointer"
                 onClick={triggerHaptic}
               />
             }
@@ -585,7 +585,7 @@ export default function DashboardPage() {
           <DialogTrigger 
             render={
               <Button 
-                className="rounded-full shadow-2xl bg-blue-500 hover:bg-blue-600 pointer-events-auto h-14 px-6 gap-2 flex items-center justify-center cursor-pointer"
+                className="rounded-full btn-glass-music pointer-events-auto h-14 px-6 gap-2 cursor-pointer"
                 onClick={triggerHaptic}
               />
             }
@@ -604,7 +604,7 @@ export default function DashboardPage() {
         <Link href="/ranking" className="pointer-events-auto">
           <Button 
             size="lg" 
-            className="rounded-full shadow-2xl bg-primary hover:bg-primary/90 h-14 px-6 gap-2"
+            className="rounded-full btn-glass-rank h-14 px-6 gap-2"
             onClick={triggerHaptic}
           >
             <Award className="w-5 h-5" />

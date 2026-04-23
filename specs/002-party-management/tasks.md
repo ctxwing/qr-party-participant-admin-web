@@ -3,11 +3,11 @@
 ## Phase 1: Technology PoC (STEP 1)
 🎯 **목표**: 기술 스택 확정 및 구현 가능성 검증 (UI 제외)
 
-- [ ] T001 [STEP 1.1] 관리자 인증 방식(ID/PWD) 기술 조사 및 Better Auth 연동 검증
-    - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
-    - [ ] 3_prj_docs/완료내역/TASK_T001_완료내역.md 작성 (테스트 성공 결과 포함)
-    - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
-    - [ ] 한글 메시지로 git commit 및 git push 수행
+- [x] T001 [STEP 1.1] 관리자 인증 방식(ID/PWD) 기술 조사 및 Better Auth 연동 검증
+    - [x] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
+    - [x] 3_prj_docs/완료내역/TASK_T001_완료내역.md 작성 (테스트 성공 결과 포함)
+    - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
+    - [x] 한글 메시지로 git commit 및 git push 수행
 - [ ] T002 [STEP 1.1] ag-grid v35, qrcode.react, Supabase Realtime 기술 조사
     - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
     - [ ] 3_prj_docs/완료내역/TASK_T002_완료내역.md 작성 (테스트 성공 결과 포함)
@@ -83,12 +83,12 @@
     - [ ] 3_prj_docs/완료내역/TASK_T013_완료내역.md 작성 (테스트 성공 결과 포함)
     - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
     - [ ] 한글 메시지로 git commit 및 git push 수행
-- [ ] T014 [US1] 실시간 공지 발송 인터페이스 및 참여자 모바일 수신 확인 팝업 구현
+- [ ] T014 [US1] 실시간 공지 발송 인터페이스 및 참여자 모바일 수신 확인 팝업 & 공지 이력 조회 UI 구현
     - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
     - [ ] 3_prj_docs/완료내역/TASK_T014_완료내역.md 작성 (테스트 성공 결과 포함)
     - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
     - [ ] 한글 메시지로 git commit 및 git push 수행
-- [ ] T015 [US3] QR 관리 설정 페이지 (`/admin/settings/qr`) 및 URL 편집 UI 구현
+- [ ] T015 [US3] QR 관리 설정 페이지(`/admin/settings/qr`) 및 파티 종료 안내 페이지 구현
     - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
     - [ ] 3_prj_docs/완료내역/TASK_T015_완료내역.md 작성 (테스트 성공 결과 포함)
     - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
