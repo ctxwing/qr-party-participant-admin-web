@@ -29,16 +29,16 @@
 ## Phase 2: Core Feature Verification (STEP 2)
 🎯 **목표**: UI 없이 스크립트만으로 비즈니스 로직 완전 검증
 
-- [ ] T005 [STEP 2.1] 관리자 로그인/세션 관리 및 권한 체크(Admin Only) 로직 검증
-    - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
-    - [ ] 3_prj_docs/완료내역/TASK_T005_완료내역.md 작성 (테스트 성공 결과 포함)
-    - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
-    - [ ] 한글 메시지로 git commit 및 git push 수행
-- [ ] T006 [STEP 2.1] 파티 생명주기(Draft->Active->Completed) 전환 및 중복 활성 방지 로직 구현
-    - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
-    - [ ] 3_prj_docs/완료내역/TASK_T006_완료내역.md 작성 (테스트 성공 결과 포함)
-    - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
-    - [ ] 한글 메시지로 git commit 및 git push 수행
+- [x] T005 [STEP 2.1] 관리자 로그인/세션 관리 및 권한 체크(Admin Only) 로직 검증
+    - [x] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
+    - [x] 3_prj_docs/완료내역/TASK_T005_완료내역.md 작성 (테스트 성공 결과 포함)
+    - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
+    - [x] 한글 메시지로 git commit 및 git push 수행
+- [x] T006 [STEP 2.1] 파티 생명주기(Draft->Active->Completed) 전환 및 중복 활성 방지 로직 구현
+    - [x] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
+    - [x] 3_prj_docs/완료내역/TASK_T006_완료내역.md 작성 (테스트 성공 결과 포함)
+    - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
+    - [x] 한글 메시지로 git commit 및 git push 수행
 
 ---
 
