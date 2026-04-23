@@ -22,7 +22,7 @@ export default function RootLayout({
     <html lang="ko" className="dark">
       <body className={`${outfit.variable} font-sans antialiased`}>
         {children}
-        <Toaster position="top-center" richColors />
+        <Toaster position="top-right" expand={true} richColors />
       </body>
     </html>
   );
