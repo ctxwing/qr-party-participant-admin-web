@@ -13,7 +13,7 @@
 
 **Language/Version**: Bun 1.1+, Next.js 16.2.1+, Python 3.13+ (uv 가상환경)
 **Primary Dependencies**: ag-grid-react v35+, Better Auth (관리자 인증), shadcn/ui, Tailwind CSS, Zustand, Supabase SDK, Drizzle ORM, qrcode.react
-**Storage**: SQLite (개발용), Supabase/PostgreSQL (상용)
+**Storage**: Supabase/PostgreSQL (Drizzle ORM 활용)
 **Testing**: Bun test
 **Target Platform**: Linux Server (Docker), Mobile/PC Web (반응형)
 **Project Type**: Next.js Full-stack Web Application
