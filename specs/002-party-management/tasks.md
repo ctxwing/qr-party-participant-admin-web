@@ -46,11 +46,11 @@
 🎯 **목표**: DB 연동 및 실제 UI가 포함된 최소 제품 구현
 
 ### STEP 3.1: 백엔드 및 DB 구현
-- [ ] T007 [US1] `prj_source/database/schema.ts`에 `parties`, `announcements` 테이블 스키마 정의
-    - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
-    - [ ] 3_prj_docs/완료내역/TASK_T007_완료내역.md 작성 (테스트 성공 결과 포함)
-    - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
-    - [ ] 한글 메시지로 git commit 및 git push 수행
+- [x] T007 [US1] `prj_source/database/schema.ts`에 `parties`, `announcements` 테이블 스키마 정의
+    - [x] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
+    - [x] 3_prj_docs/완료내역/TASK_T007_완료내역.md 작성 (테스트 성공 결과 포함)
+    - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
+    - [x] 한글 메시지로 git commit 및 git push 수행
 - [ ] T008 [US1] 파티 CRUD 및 상태 변경 API 구현 (`/api/admin/parties`)
     - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
     - [ ] 3_prj_docs/완료내역/TASK_T008_완료내역.md 작성 (테스트 성공 결과 포함)
