@@ -93,11 +93,11 @@
     - [x] 3_prj_docs/완료내역/TASK_T015_완료내역.md 작성 (테스트 성공 결과 포함)
     - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
     - [x] 한글 메시지로 git commit 및 git push 수행
-- [ ] T016 [P] [US3] 브랜딩 QR 코드 생성 미리보기 및 다운로드(PNG/SVG) 기능 통합
-    - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
-    - [ ] 3_prj_docs/완료내역/TASK_T016_완료내역.md 작성 (테스트 성공 결과 포함)
-    - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
-    - [ ] 한글 메시지로 git commit 및 git push 수행
+- [x] T016 [P] [US3] 브랜딩 QR 코드 생성 미리보기 및 다운로드(PNG/SVG) 기능 통합
+    - [x] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
+    - [x] 3_prj_docs/완료내역/TASK_T016_완료내역.md 작성 (테스트 성공 결과 포함)
+    - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
+    - [x] 한글 메시지로 git commit 및 git push 수행
 - [ ] T017 [설계만] WordPress 연동 API 구조 설계 (구현 보류)
     - [ ] 3_prj_docs/미구현사항.md 에 상세 내용 기록 확인
     - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
