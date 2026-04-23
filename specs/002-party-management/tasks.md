@@ -73,11 +73,11 @@
     - [x] 3_prj_docs/완료내역/TASK_T011_완료내역.md 작성 (테스트 성공 결과 포함)
     - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
     - [x] 한글 메시지로 git commit 및 git push 수행
-- [ ] T012 [US2] 파티 관리 목록 페이지 (`/admin/party`) 구현 (ag-grid, 검색, 페이징)
-    - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
-    - [ ] 3_prj_docs/완료내역/TASK_T012_완료내역.md 작성 (테스트 성공 결과 포함)
-    - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
-    - [ ] 한글 메시지로 git commit 및 git push 수행
+- [x] T012 [US2] 파티 관리 목록 페이지 (`/admin/parties`) 구현 (ag-grid, 검색, 페이징)
+    - [x] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
+    - [x] 3_prj_docs/완료내역/TASK_T012_완료내역.md 작성 (테스트 성공 결과 포함)
+    - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
+    - [x] 한글 메시지로 git commit 및 git push 수행
 - [ ] T013 [US1] 상단 가이드 플로우 컴포넌트 및 상세 매뉴얼 팝업 UI 구현
     - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
     - [ ] 3_prj_docs/완료내역/TASK_T013_완료내역.md 작성 (테스트 성공 결과 포함)
