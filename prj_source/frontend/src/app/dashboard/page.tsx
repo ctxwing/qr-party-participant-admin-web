@@ -152,6 +152,7 @@ export default function DashboardPage() {
   
   const [isSosOpen, setIsSosOpen] = useState(false)
   const [isMusicOpen, setIsMusicOpen] = useState(false)
+  const [activeAnnouncement, setActiveAnnouncement] = useState<any>(null)
   
   const supabase = createClient()
 
@@ -170,6 +171,11 @@ export default function DashboardPage() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${participant.id}` }, () => {
         fetchMyStats()
         toast('새로운 쪽지가 도착했습니다! 📩')
+      })
+      .on('broadcast', { event: 'new-announcement' }, ({ payload }) => {
+        console.log('Received announcement:', payload)
+        setActiveAnnouncement(payload)
+        triggerHaptic()
       })
       .subscribe()
 
@@ -612,6 +618,35 @@ export default function DashboardPage() {
           </Button>
         </Link>
       </div>
+
+      {/* 실시간 공지 팝업 */}
+      <Dialog open={!!activeAnnouncement} onOpenChange={(open) => !open && setActiveAnnouncement(null)}>
+        <DialogContent className={`glass border-none max-w-[90%] rounded-2xl ring-2 ${
+          activeAnnouncement?.type === 'important' ? 'ring-red-500 animate-pulse' : 
+          activeAnnouncement?.type === 'warning' ? 'ring-yellow-500' : 'ring-indigo-500'
+        }`}>
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-black flex items-center justify-center gap-2">
+              <Zap className={`w-6 h-6 ${
+                activeAnnouncement?.type === 'important' ? 'text-red-500' : 
+                activeAnnouncement?.type === 'warning' ? 'text-yellow-500' : 'text-indigo-400'
+              }`} />
+              PARTY NOTICE
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-6 text-center space-y-4">
+            <p className="text-lg font-bold leading-relaxed whitespace-pre-wrap">
+              {activeAnnouncement?.content}
+            </p>
+            <Button 
+              className="w-full h-12 font-black bg-indigo-600 hover:bg-indigo-700 mt-4"
+              onClick={() => setActiveAnnouncement(null)}
+            >
+              확인했습니다
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
