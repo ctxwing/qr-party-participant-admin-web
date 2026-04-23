@@ -14,11 +14,8 @@ import { Play, Square, Users, MessageSquare, AlertCircle, CheckCircle2, Music, U
 import { Switch } from '@/components/ui/switch'
 import { createClient } from '@/lib/supabase'
 import { AgGridReact } from 'ag-grid-react'
-import { AllCommunityModule, ModuleRegistry, ColDef } from 'ag-grid-community'
-import 'ag-grid-community/styles/ag-grid.css'
-import 'ag-grid-community/styles/ag-theme-alpine.css'
-
-ModuleRegistry.registerModules([AllCommunityModule])
+import { ColDef } from 'ag-grid-community'
+import { defaultColDef, AG_GRID_THEME } from '@/lib/ag-grid-setup'
 
 export default function AdminPage() {
   const router = useRouter()
@@ -553,7 +550,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 </div>
               </div>
             </CardHeader>
-            <div className="ag-theme-alpine-dark w-full h-[500px] border-none">
+            <div className={`${AG_GRID_THEME} w-full h-[500px] border-none`}>
               <AgGridReact
                 rowData={alerts}
                 columnDefs={alertColumnDefs}
@@ -562,12 +559,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 paginationPageSizeSelector={[10, 20, 50, 100]}
                 rowHeight={60}
                 theme="legacy"
-                defaultColDef={{
-                  resizable: true,
-                  sortable: true,
-                  filter: true,
-                  cellStyle: { display: 'flex', alignItems: 'center' }
-                }}
+                defaultColDef={defaultColDef}
               />
             </div>
           </Card>
@@ -602,7 +594,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 </div>
               </div>
             </CardHeader>
-            <div className="ag-theme-alpine-dark w-full h-[600px] border-none shadow-inner">
+            <div className={`${AG_GRID_THEME} w-full h-[600px] border-none shadow-inner`}>
               <AgGridReact
                 rowData={filteredParticipants}
                 columnDefs={columnDefs}
@@ -611,12 +603,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 paginationPageSizeSelector={[10, 20, 50, 100]}
                 rowHeight={56}
                 theme="legacy"
-                defaultColDef={{
-                  resizable: true,
-                  sortable: true,
-                  filter: true,
-                  cellStyle: { display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.03)' }
-                }}
+                defaultColDef={defaultColDef}
               />
             </div>
           </Card>
@@ -637,7 +624,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 </div>
               </div>
             </CardHeader>
-            <div className="ag-theme-alpine-dark w-full h-[650px] border-none shadow-inner">
+            <div className={`${AG_GRID_THEME} w-full h-[650px] border-none shadow-inner`}>
               <AgGridReact
                 rowData={messages}
                 columnDefs={messageColumnDefs}
@@ -645,12 +632,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 paginationPageSize={20}
                 rowHeight={56}
                 theme="legacy"
-                defaultColDef={{
-                  resizable: true,
-                  sortable: true,
-                  filter: true,
-                  cellStyle: { display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.03)' }
-                }}
+                defaultColDef={defaultColDef}
               />
             </div>
           </Card>
