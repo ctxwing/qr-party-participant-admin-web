@@ -254,6 +254,8 @@ export default function DashboardPage() {
     if (!error) {
       toast.error('관리자에게 SOS 요청을 보냈습니다!')
       setIsSosOpen(false)
+    } else {
+      toast.error('SOS 전송 실패: ' + error.message)
     }
   }
 
@@ -294,6 +296,8 @@ export default function DashboardPage() {
       } else {
         setIsMusicOpen(false)
       }
+    } else {
+      toast.error('노래 신청 실패: ' + error.message)
     }
   }
 
