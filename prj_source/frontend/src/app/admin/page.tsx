@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Play, Square, Users, MessageSquare, AlertCircle, CheckCircle2, Music, UserCog, History, Lock, Eye, EyeOff, Calendar, Fingerprint, ShieldCheck, ArrowRight, Settings2 } from 'lucide-react'
+import { Play, Square, Users, MessageSquare, AlertCircle, CheckCircle2, Music, UserCog, History, Lock, Eye, EyeOff, Calendar, Fingerprint, ShieldCheck, ArrowRight, Settings2, Clock, Activity } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
 import { createClient } from '@/lib/supabase'
 import { AgGridReact } from 'ag-grid-react'
 import { AllCommunityModule, ModuleRegistry, ColDef } from 'ag-grid-community'
@@ -58,57 +59,67 @@ export default function AdminPage() {
   }
 
   if (isLoading) {
-    return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-50">Loading...</div>
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white gap-6">
+        <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+        <p className="text-sm font-bold tracking-widest opacity-50 uppercase">Loading Console...</p>
+      </div>
+    )
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md bg-slate-900 border-slate-800 text-slate-50">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-              <Lock className="text-primary w-6 h-6" />
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative overflow-hidden">
+        <div className="premium-blur-bg" />
+        <Card className="w-full max-w-md glass border-none shadow-[0_32px_64px_rgba(0,0,0,0.5)] relative z-10">
+          <div className="absolute top-0 left-0 w-full h-1 bg-vibrant-gradient" />
+          <CardHeader className="text-center pt-10">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 border border-primary/20 shadow-inner">
+              <ShieldCheck className="text-primary w-8 h-8" />
             </div>
-            <CardTitle className="text-2xl font-black">ADMIN LOGIN</CardTitle>
-            <CardDescription>관리자 계정으로 로그인하세요.</CardDescription>
+            <CardTitle className="text-3xl font-black tracking-tighter text-white">ADMIN CONSOLE</CardTitle>
+            <CardDescription className="text-white/40 font-medium">관리자 계정으로 보안 접속하십시오.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+          <CardContent className="pb-10">
+            <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium">이메일</label>
+                <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Account Email</label>
                 <Input 
                   type="email" 
                   placeholder="admin@example.com" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="bg-slate-950 border-slate-800"
+                  className="bg-white/5 border-white/10 h-12 focus:ring-primary/20 focus:border-primary/50"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">비밀번호</label>
+                <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Password</label>
                 <div className="relative">
                   <Input 
                     type={showPassword ? "text" : "password"} 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="bg-slate-950 border-slate-800 pr-10"
+                    className="bg-white/5 border-white/10 h-12 pr-12 focus:ring-primary/20 focus:border-primary/50"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? '로그인 중...' : '로그인'}
+              <Button type="submit" className="w-full h-14 text-lg font-black bg-vibrant-gradient hover:scale-[1.02] active:scale-95 transition-all shadow-xl rounded-xl border-t border-white/20" disabled={isLoading}>
+                {isLoading ? 'SECURE LOGIN...' : 'ACCESS CONSOLE'}
               </Button>
             </form>
           </CardContent>
+          <div className="bg-black/20 p-4 text-center border-t border-white/5">
+            <p className="text-[10px] text-white/20 font-bold uppercase tracking-widest">Authorized Access Only</p>
+          </div>
         </Card>
       </div>
     )
@@ -141,10 +152,27 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     fetchInitialData()
 
     const channel = supabase.channel('admin-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'alerts' }, payload => {
-        setAlerts(prev => [payload.new, ...prev])
-        toast(payload.new.type === 'SOS' ? '🚨 SOS 요청 수신!' : '🎵 노래 요청 수신!')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'alerts' }, async (payload) => {
+        // 실시간 수신 시 닉네임 정보가 포함된 전체 데이터를 다시 가져옵니다. (수동 조인)
+        const [alertRes, partRes] = await Promise.all([
+          supabase.from('alerts').select('*').eq('id', payload.new.id).single(),
+          supabase.from('participants').select('id, nickname')
+        ])
+        
+        if (alertRes.data && partRes.data) {
+          const participant = partRes.data.find(p => p.id === alertRes.data.participant_id)
+          const newAlert = { ...alertRes.data, participants: participant }
+          
+          setAlerts(prev => [newAlert, ...prev])
+          const title = newAlert.type === 'SOS' ? '🚨 SOS 긴급 요청!' : '🎵 노래 신청 수신!'
+          const msg = newAlert.message.split(':').slice(1).join(':') || newAlert.message
+          toast(title, {
+            description: `from ${participant?.nickname || '참여자'}\n${msg}`,
+            duration: 10000,
+          })
+        }
       })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'alerts' }, () => fetchAlerts())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, () => fetchParticipants())
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => fetchMessages())
       .subscribe()
@@ -188,13 +216,45 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   }
 
   const fetchMessages = async () => {
-    const { data } = await supabase.from('messages').select('*, sender:sender_id(nickname), receiver:receiver_id(nickname)').order('created_at', { ascending: false }).limit(50)
-    if (data) setMessages(data)
+    try {
+      // 스키마 캐시 문제를 피하기 위해 개별 조회 후 수동 조인
+      const [msgRes, partRes] = await Promise.all([
+        supabase.from('messages').select('*').order('created_at', { ascending: false }).limit(50),
+        supabase.from('participants').select('id, nickname')
+      ])
+
+      if (msgRes.data && partRes.data) {
+        const partMap = new Map(partRes.data.map(p => [p.id, p]))
+        const joinedMessages = msgRes.data.map(m => ({
+          ...m,
+          sender: partMap.get(m.sender_id),
+          receiver: partMap.get(m.receiver_id)
+        }))
+        setMessages(joinedMessages)
+      }
+    } catch (error) {
+      console.error('Messages fetch error:', error)
+    }
   }
 
   const fetchAlerts = async () => {
-    const { data } = await supabase.from('alerts').select('*, participants(nickname)').order('created_at', { ascending: false })
-    if (data) setAlerts(data)
+    try {
+      const [alertRes, partRes] = await Promise.all([
+        supabase.from('alerts').select('*').order('created_at', { ascending: false }),
+        supabase.from('participants').select('id, nickname')
+      ])
+
+      if (alertRes.data && partRes.data) {
+        const partMap = new Map(partRes.data.map(p => [p.id, p]))
+        const joinedAlerts = alertRes.data.map(a => ({
+          ...a,
+          participants: partMap.get(a.participant_id)
+        }))
+        setAlerts(joinedAlerts)
+      }
+    } catch (error) {
+      console.error('Alerts fetch error:', error)
+    }
   }
 
   const fetchParticipantDetails = async (id: string) => {
@@ -230,15 +290,20 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   }
 
   const handleToggleSession = async () => {
-    const nextStatus = sessionStatus === 'ONGOING' ? 'FINISHED' : 'ONGOING'
-    if (nextStatus === 'ONGOING') {
+    if (sessionStatus === 'ONGOING') {
+      if (!window.confirm('정말 파티를 종료하시겠습니까? 종료 후에는 참여자들이 더 이상 활동할 수 없습니다.')) {
+        return
+      }
+      await supabase.from('party_sessions').update({ status: 'FINISHED', end_time: new Date().toISOString() }).eq('status', 'ONGOING')
+      setSessionStatus('FINISHED')
+      toast.success('세션이 종료되었습니다.')
+    } else {
       const title = prompt('행사명을 입력하세요', '오늘의 파티') || '오늘의 파티'
       await supabase.from('party_sessions').insert({ status: 'ONGOING', title, start_time: new Date().toISOString() })
-    } else {
-      await supabase.from('party_sessions').update({ status: 'FINISHED', end_time: new Date().toISOString() }).eq('status', 'ONGOING')
+      setSessionStatus('ONGOING')
+      toast.success('새로운 세션이 시작되었습니다.')
     }
-    setSessionStatus(nextStatus)
-    toast.success(`세션 ${nextStatus}`)
+    fetchInitialData()
   }
 
   const filteredParticipants = participants.filter(p => {
@@ -246,6 +311,121 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const matchesSearch = p.nickname?.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesFilter && matchesSearch
   })
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-'
+    const d = new Date(dateStr)
+    const pad = (n: number) => n.toString().padStart(2, '0')
+    const yy = d.getFullYear().toString().slice(2)
+    const mm = pad(d.getMonth() + 1)
+    const dd = pad(d.getDate())
+    const hh = pad(d.getHours())
+    const mi = pad(d.getMinutes())
+    const ss = pad(d.getSeconds())
+    return `${yy}-${mm}-${dd} ${hh}:${mi}:${ss}`
+  }
+
+  const handleToggleResolve = async (id: string, current: boolean) => {
+    if (!id) {
+      console.warn('Alert ID is missing')
+      return
+    }
+    
+    console.log('Toggling alert:', id, 'from', current, 'to', !current)
+    
+    const { error } = await supabase
+      .from('alerts')
+      .update({ resolved: !current })
+      .eq('id', id)
+
+    if (error) {
+      console.error('Update alert error:', JSON.stringify(error, null, 2))
+      toast.error('상태 변경 실패: ' + (error.message || '로그 확인'))
+    } else {
+      toast.success(current ? '미해결 상태로 변경' : '해결 완료 처리')
+      fetchAlerts()
+    }
+  }
+
+  const alertColumnDefs: ColDef[] = [
+    { 
+      field: 'type', 
+      headerName: '구분', 
+      width: 100,
+      cellRenderer: (params: any) => (
+        <Badge variant={params.value === 'SOS' ? 'destructive' : 'default'} className="font-bold">
+          {params.value === 'SOS' ? '🚨 SOS' : '🎵 MUSIC'}
+        </Badge>
+      )
+    },
+    { 
+      headerName: '요청자', 
+      width: 150,
+      valueGetter: (params: any) => params.data.participants?.nickname || '시스템',
+      cellRenderer: (params: any) => <span className="font-black text-primary">{params.value}</span>
+    },
+    { 
+      field: 'message', 
+      headerName: '내용', 
+      flex: 2,
+      cellRenderer: (params: any) => <span className="text-sm opacity-90">{params.value.split(':').slice(1).join(':') || params.value}</span>
+    },
+    { 
+      field: 'created_at', 
+      headerName: '시간', 
+      width: 160,
+      valueFormatter: (params) => formatDate(params.value)
+    },
+    { 
+      field: 'resolved', 
+      headerName: '해결', 
+      width: 100,
+      cellRenderer: (params: any) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Switch 
+            checked={params.value} 
+            onCheckedChange={() => handleToggleResolve(params.data.id, params.value)}
+            label={params.value ? '완료' : '대기'}
+            className="gap-2"
+          />
+        </div>
+      )
+    }
+  ]
+
+  const messageColumnDefs: ColDef[] = [
+    { 
+      headerName: '보낸이', 
+      width: 150,
+      valueGetter: (params: any) => params.data.sender?.nickname || '알수없음',
+      cellRenderer: (params: any) => <span className="font-black text-primary">{params.value}</span>
+    },
+    { 
+      headerName: '', 
+      width: 50,
+      cellRenderer: () => <ArrowRight className="w-4 h-4 text-white/20" />,
+      filter: false,
+      sortable: false
+    },
+    { 
+      headerName: '받는이', 
+      width: 150,
+      valueGetter: (params: any) => params.data.receiver?.nickname || '알수없음',
+      cellRenderer: (params: any) => <span className="font-black text-blue-400">{params.value}</span>
+    },
+    { 
+      field: 'content', 
+      headerName: '내용', 
+      flex: 1,
+      cellRenderer: (params: any) => <span className="text-sm">{params.value}</span>
+    },
+    { 
+      field: 'created_at', 
+      headerName: '시간', 
+      width: 160,
+      valueFormatter: (params) => formatDate(params.value)
+    }
+  ]
 
   const columnDefs: ColDef[] = [
     { 
@@ -264,14 +444,14 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     { 
       field: 'created_at', 
       headerName: '가입일', 
-      width: 110,
-      valueFormatter: (params) => params.value ? new Date(params.value).toLocaleDateString() : '-'
+      width: 150,
+      valueFormatter: (params) => formatDate(params.value)
     },
     { 
       field: 'last_participated_at', 
       headerName: '참여일', 
-      width: 110,
-      valueFormatter: (params) => params.value ? new Date(params.value).toLocaleDateString() : '-'
+      width: 150,
+      valueFormatter: (params) => formatDate(params.value)
     },
     { 
       field: 'is_first_applied', 
@@ -344,133 +524,215 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   ]
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 p-6 space-y-8">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
+    <div className="min-h-screen bg-slate-950 text-white p-6 space-y-8 relative overflow-hidden">
+      <div className="premium-blur-bg opacity-30" />
+      
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
         <div className="flex items-center gap-4">
-          <h1 className="text-3xl font-black">ADMIN CONSOLE</h1>
-          <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">Authenticated</Badge>
+          <div className="p-2 rounded-xl bg-vibrant-gradient">
+            <Settings2 className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black tracking-tighter">ADMIN CONSOLE</h1>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">System Operational</p>
+            </div>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={onLogout}>LOGOUT</Button>
-          <Button variant={sessionStatus === 'ONGOING' ? 'destructive' : 'default'} onClick={handleToggleSession}>
-            {sessionStatus === 'ONGOING' ? 'STOP PARTY' : 'START PARTY'}
+        <div className="flex gap-3">
+          <Button variant="outline" className="glass border-white/10 hover:bg-white/5 h-12 w-48 font-bold" onClick={onLogout}>LOGOUT</Button>
+          <Button 
+            className={`h-12 w-48 font-black rounded-xl transition-all shadow-xl ${sessionStatus === 'ONGOING' ? 'bg-zinc-800 hover:bg-zinc-700 text-white border border-white/10' : 'bg-vibrant-gradient'}`}
+            onClick={handleToggleSession}
+          >
+            {sessionStatus === 'ONGOING' ? (
+              <div className="flex items-center gap-2">
+                <Square className="w-4 h-4 fill-current text-white/40" /> STOP PARTY
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Play className="w-4 h-4 fill-current" /> START PARTY
+              </div>
+            )}
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="dashboard" className="max-w-7xl mx-auto">
-        <TabsList className="bg-slate-900 border-slate-800">
-          <TabsTrigger value="dashboard">현황판</TabsTrigger>
-          <TabsTrigger value="participants">참여자 관리</TabsTrigger>
-          <TabsTrigger value="messages">쪽지 모니터링</TabsTrigger>
-          <TabsTrigger value="settings">시스템 설정</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="dashboard" className="max-w-7xl mx-auto relative z-10 px-4">
+        <div className="flex justify-center mb-12">
+          <TabsList className="bg-white/5 border border-white/10 p-1.5 h-auto rounded-full flex flex-wrap md:flex-nowrap gap-1 items-center justify-center backdrop-blur-md">
+            <TabsTrigger value="dashboard" className="rounded-full px-6 md:px-10 py-2 md:py-3 data-[state=active]:bg-vibrant-gradient data-[state=active]:text-white data-[state=active]:shadow-lg text-sm md:text-lg font-bold transition-all hover:bg-white/5">현황판</TabsTrigger>
+            <TabsTrigger value="participants" className="rounded-full px-6 md:px-10 py-2 md:py-3 data-[state=active]:bg-vibrant-gradient data-[state=active]:text-white data-[state=active]:shadow-lg text-sm md:text-lg font-bold transition-all hover:bg-white/5">참여자 관리</TabsTrigger>
+            <TabsTrigger value="messages" className="rounded-full px-6 md:px-10 py-2 md:py-3 data-[state=active]:bg-vibrant-gradient data-[state=active]:text-white data-[state=active]:shadow-lg text-sm md:text-lg font-bold transition-all hover:bg-white/5">쪽지 모니터링</TabsTrigger>
+            <TabsTrigger value="settings" className="rounded-full px-6 md:px-10 py-2 md:py-3 data-[state=active]:bg-vibrant-gradient data-[state=active]:text-white data-[state=active]:shadow-lg text-sm md:text-lg font-bold transition-all hover:bg-white/5">시스템 설정</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="dashboard" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="bg-slate-900 border-slate-800 text-slate-50">
-              <CardHeader><CardTitle className="text-blue-400">{participants.length}</CardTitle><CardDescription>참여자 수</CardDescription></CardHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* 참여자 카드 */}
+            <Card className="glass border-none shadow-xl overflow-hidden relative group">
+              <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
+              <CardHeader className="pb-2">
+                <CardDescription className="uppercase tracking-widest font-bold text-white/40 text-[10px]">Active Participants</CardDescription>
+                <CardTitle className="text-4xl font-black text-blue-400 text-glow">{participants.length}</CardTitle>
+              </CardHeader>
             </Card>
-            <Card className="bg-slate-900 border-slate-800 text-slate-50">
-              <CardHeader><CardTitle className="text-green-400">{messages.length}</CardTitle><CardDescription>누적 쪽지</CardDescription></CardHeader>
+
+            {/* 메시지 카드 */}
+            <Card className="glass border-none shadow-xl overflow-hidden relative group">
+              <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+              <CardHeader className="pb-2">
+                <CardDescription className="uppercase tracking-widest font-bold text-white/40 text-[10px]">Total Messages</CardDescription>
+                <CardTitle className="text-4xl font-black text-emerald-400 text-glow">{messages.length}</CardTitle>
+              </CardHeader>
             </Card>
-            <Card className="bg-slate-900 border-slate-800 text-slate-50">
-              <CardHeader><CardTitle className="text-red-400">{alerts.filter(a => a.type==='SOS' && !a.is_resolved).length}</CardTitle><CardDescription>미해결 SOS</CardDescription></CardHeader>
+
+            {/* SOS 카드 */}
+            <Card className="glass border-none shadow-xl overflow-hidden relative group">
+              <div className="absolute top-0 left-0 w-1 h-full bg-sos" />
+              <CardHeader className="pb-2">
+                <CardDescription className="uppercase tracking-widest font-bold text-white/40 text-[10px]">SOS Requests</CardDescription>
+                <CardTitle className="text-4xl font-black text-sos text-glow">
+                  {alerts.filter(a => a.type==='SOS').length}
+                </CardTitle>
+                <div className="flex gap-2 mt-2">
+                  <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20">완료 {alerts.filter(a => a.type==='SOS' && a.resolved).length}</Badge>
+                  <Badge variant="outline" className="text-[10px] bg-sos/10 text-sos border-sos/20">미완료 {alerts.filter(a => a.type==='SOS' && !a.resolved).length}</Badge>
+                </div>
+              </CardHeader>
+            </Card>
+
+            {/* 노래신청 카드 */}
+            <Card className="glass border-none shadow-xl overflow-hidden relative group">
+              <div className="absolute top-0 left-0 w-1 h-full bg-purple-500" />
+              <CardHeader className="pb-2">
+                <CardDescription className="uppercase tracking-widest font-bold text-white/40 text-[10px]">Song Requests</CardDescription>
+                <CardTitle className="text-4xl font-black text-purple-400 text-glow">
+                  {alerts.filter(a => a.type==='MUSIC').length}
+                </CardTitle>
+                <div className="flex gap-2 mt-2">
+                  <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20">완료 {alerts.filter(a => a.type==='MUSIC' && a.resolved).length}</Badge>
+                  <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-400 border-purple-500/20">미완료 {alerts.filter(a => a.type==='MUSIC' && !a.resolved).length}</Badge>
+                </div>
+              </CardHeader>
             </Card>
           </div>
 
-          <Card className="bg-slate-900 border-slate-800 text-slate-50">
-            <CardHeader><CardTitle>실시간 요청 (SOS / 노래)</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              {alerts.length === 0 ? (
-                <p className="text-center py-8 text-slate-500">수신된 요청이 없습니다.</p>
-              ) : (
-                alerts.map(a => (
-                  <div key={a.id} className={`p-4 rounded-lg border flex justify-between items-center ${a.type==='SOS' ? 'bg-red-500/10 border-red-500/30' : 'bg-blue-500/10 border-blue-500/30'}`}>
-                    <div className="flex items-center gap-3">
-                      {a.type === 'SOS' ? <AlertCircle className="text-red-500" /> : <Music className="text-blue-500" />}
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-primary">{a.participants?.nickname || '시스템'}</span>
-                          {a.receiver?.nickname && (
-                            <>
-                              <ArrowRight className="w-3 h-3 text-slate-500" />
-                              <span className="font-bold text-blue-400">{a.receiver.nickname}</span>
-                            </>
-                          )}
-                        </div>
-                        <p className="text-sm mt-1">{a.message.split(':').slice(1).join(':') || a.message}</p>
-                        <p className="text-[10px] opacity-50">{new Date(a.created_at).toLocaleTimeString()}</p>
-                      </div>
-                    </div>
-                    {!a.is_resolved && (
-                      <Button size="sm" onClick={() => supabase.from('alerts').update({ is_resolved: true }).eq('id', a.id).then(() => fetchAlerts())}>Resolve</Button>
-                    )}
-                  </div>
-                ))
-              )}
-            </CardContent>
+          <Card className="glass border-none shadow-2xl overflow-hidden mt-8">
+            <CardHeader className="border-b border-white/5 pb-6">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-xl font-black flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-primary" />
+                  실시간 요청 처리 이력 (SOS / 노래)
+                </CardTitle>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="text-white/40 border-white/10">{alerts.length} Total Alerts</Badge>
+                  <Button variant="ghost" size="sm" onClick={fetchAlerts} className="hover:bg-white/5"><Activity className="w-3 h-3 mr-2" /> Refresh</Button>
+                </div>
+              </div>
+            </CardHeader>
+            <div className="ag-theme-alpine-dark w-full h-[500px] border-none">
+              <AgGridReact
+                rowData={alerts}
+                columnDefs={alertColumnDefs}
+                pagination={true}
+                paginationPageSize={10}
+                paginationPageSizeSelector={[10, 20, 50, 100]}
+                rowHeight={60}
+                theme="legacy"
+                defaultColDef={{
+                  resizable: true,
+                  sortable: true,
+                  filter: true,
+                  cellStyle: { display: 'flex', alignItems: 'center' }
+                }}
+              />
+            </div>
           </Card>
         </TabsContent>
+        
+        <TabsContent value="participants" className="space-y-6">
 
-        <TabsContent value="participants" className="space-y-4">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div className="relative w-full md:w-72">
-              <Input 
-                placeholder="닉네임으로 검색..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-slate-900 border-slate-800 pr-10"
+          <Card className="glass border-none shadow-2xl overflow-hidden">
+            <CardHeader className="border-b border-white/5 pb-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="relative w-full md:w-96">
+                  <Input 
+                    placeholder="참여자 닉네임 검색..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="bg-white/5 border-white/10 h-12 pl-10 focus:ring-primary/20"
+                  />
+                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button 
+                    variant="outline" 
+                    className={`h-12 px-6 glass border-white/10 ${filterUnapplied ? 'bg-primary/20 text-primary-foreground' : ''}`}
+                    onClick={() => setFilterUnapplied(!filterUnapplied)}
+                  >
+                    {filterUnapplied ? "전체 보기" : "2차 미신청자 필터"}
+                  </Button>
+                  <div className="h-12 px-4 glass border-white/10 rounded-xl flex items-center justify-center">
+                    <span className="text-xs font-bold text-white/40 uppercase tracking-widest mr-2">Total</span>
+                    <span className="text-lg font-black text-primary">{filteredParticipants.length}</span>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <div className="ag-theme-alpine-dark w-full h-[600px] border-none shadow-inner">
+              <AgGridReact
+                rowData={filteredParticipants}
+                columnDefs={columnDefs}
+                pagination={true}
+                paginationPageSize={20}
+                paginationPageSizeSelector={[10, 20, 50, 100]}
+                rowHeight={56}
+                theme="legacy"
+                defaultColDef={{
+                  resizable: true,
+                  sortable: true,
+                  filter: true,
+                  cellStyle: { display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.03)' }
+                }}
               />
-              <Users className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant={filterUnapplied ? "default" : "outline"} onClick={() => setFilterUnapplied(!filterUnapplied)} size="sm">
-                {filterUnapplied ? "전체 보기" : "2차 미신청자만 보기"}
-              </Button>
-              <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">
-                총 {filteredParticipants.length}명
-              </Badge>
-            </div>
-          </div>
+          </Card>
 
-          <div className="ag-theme-alpine-dark w-full h-[600px] rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
-            <AgGridReact
-              rowData={filteredParticipants}
-              columnDefs={columnDefs}
-              pagination={true}
-              paginationPageSize={20}
-              paginationPageSizeSelector={[10, 20, 50, 100]}
-              rowHeight={48}
-              theme="legacy"
-              defaultColDef={{
-                resizable: true,
-                sortable: true,
-                filter: true,
-                cellStyle: { display: 'flex', alignItems: 'center' }
-              }}
-            />
-          </div>
         </TabsContent>
 
         <TabsContent value="messages">
-          <Card className="bg-slate-900 border-slate-800 text-slate-50">
-            <CardHeader><CardTitle>전체 쪽지 모니터링</CardTitle></CardHeader>
-            <CardContent className="space-y-2">
-              {messages.length === 0 ? (
-                <p className="text-center py-8 text-slate-500">발송된 쪽지가 없습니다.</p>
-              ) : (
-                messages.map(m => (
-                  <div key={m.id} className="p-3 bg-slate-800/50 rounded border border-slate-700 flex justify-between text-xs">
-                    <div>
-                      <span className="text-primary font-bold">{m.sender?.nickname || '알수없음'}</span> → <span className="text-primary font-bold">{m.receiver?.nickname || '알수없음'}</span>
-                      <p className="mt-1 text-slate-300">{m.content}</p>
-                    </div>
-                    <span className="opacity-40">{new Date(m.created_at).toLocaleTimeString()}</span>
-                  </div>
-                ))
-              )}
-            </CardContent>
+          <Card className="glass border-none shadow-2xl overflow-hidden">
+            <CardHeader className="border-b border-white/5 pb-6">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-xl font-black flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-primary" />
+                  전체 쪽지 실시간 모니터링
+                </CardTitle>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="text-white/40 border-white/10">{messages.length} Messages</Badge>
+                  <Button variant="ghost" size="sm" onClick={fetchMessages} className="hover:bg-white/5"><Activity className="w-3 h-3 mr-2" /> Refresh</Button>
+                </div>
+              </div>
+            </CardHeader>
+            <div className="ag-theme-alpine-dark w-full h-[650px] border-none shadow-inner">
+              <AgGridReact
+                rowData={messages}
+                columnDefs={messageColumnDefs}
+                pagination={true}
+                paginationPageSize={20}
+                rowHeight={56}
+                theme="legacy"
+                defaultColDef={{
+                  resizable: true,
+                  sortable: true,
+                  filter: true,
+                  cellStyle: { display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.03)' }
+                }}
+              />
+            </div>
           </Card>
         </TabsContent>
 

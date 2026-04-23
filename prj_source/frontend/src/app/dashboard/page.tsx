@@ -9,82 +9,128 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { MessageCircle, Heart, Zap, Award, AlertTriangle, Edit2 } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { createClient } from '@/lib/supabase'
 import { updateNickname } from '@/app/actions/nickname'
 import Link from 'next/link'
 
-function SosForm({ onSubmit }: { onSubmit: (msg: string) => void }) {
+function SosForm({ onSubmit, onClose }: { onSubmit: (msg: string) => void, onClose: () => void }) {
   const [sosMessage, setSosMessage] = useState('')
+  const MAX_LEN = 200
   return (
     <div className="space-y-4 py-4">
-      <Input 
-        placeholder="요청 내용을 입력하세요 (생략 가능)" 
-        value={sosMessage}
-        onChange={(e) => setSosMessage(e.target.value)}
-        className="glass border-none"
-      />
-      <Button variant="destructive" className="w-full font-bold h-12" onClick={() => {
+      <div className="relative">
+        <Textarea 
+          placeholder="도움이 필요한 내용을 상세히 적어주세요..." 
+          value={sosMessage}
+          onChange={(e) => setSosMessage(e.target.value.slice(0, MAX_LEN))}
+          className="glass border-none text-lg pr-4"
+        />
+        <div className="text-[10px] text-right mt-1 text-muted-foreground">
+          <span className={sosMessage.length >= MAX_LEN ? 'text-destructive font-bold' : ''}>{sosMessage.length}</span>/{MAX_LEN}
+        </div>
+      </div>
+      <Button variant="destructive" className="w-full font-bold h-14 text-lg" onClick={() => {
+        if (!sosMessage.trim()) {
+          toast.error('내용을 입력해주세요.')
+          return
+        }
         onSubmit(sosMessage)
+        onClose()
         setSosMessage('')
       }}>SOS 요청하기</Button>
     </div>
   )
 }
 
-function GlobalMusicForm({ onSubmit }: { onSubmit: (title: string) => void }) {
+function GlobalMusicForm({ onSubmit, onClose }: { onSubmit: (title: string) => void, onClose: () => void }) {
   const [songTitle, setSongTitle] = useState('')
+  const MAX_LEN = 100
   return (
     <div className="space-y-4 py-4">
-      <Input 
-        placeholder="곡 제목을 입력하세요 (생략 가능)" 
-        value={songTitle}
-        onChange={(e) => setSongTitle(e.target.value)}
-        className="glass border-none"
-      />
-      <Button className="w-full font-bold h-12" onClick={() => {
+      <div className="relative">
+        <Textarea 
+          placeholder="신청하실 곡 제목과 가수명을 입력해주세요..." 
+          value={songTitle}
+          onChange={(e) => setSongTitle(e.target.value.slice(0, MAX_LEN))}
+          className="glass border-none text-lg"
+        />
+        <div className="text-[10px] text-right mt-1 text-muted-foreground">
+          <span className={songTitle.length >= MAX_LEN ? 'text-destructive font-bold' : ''}>{songTitle.length}</span>/{MAX_LEN}
+        </div>
+      </div>
+      <Button className="w-full font-bold h-14 text-lg" onClick={() => {
+        if (!songTitle.trim()) {
+          toast.error('곡 제목을 입력해주세요.')
+          return
+        }
         onSubmit(songTitle)
+        onClose()
         setSongTitle('')
       }}>신청하기</Button>
     </div>
   )
 }
 
-function ParticipantMusicForm({ onSubmit }: { onSubmit: (title: string) => void }) {
+function ParticipantMusicForm({ onSubmit, onClose }: { onSubmit: (title: string) => void, onClose: () => void }) {
   const [songTitle, setSongTitle] = useState('')
+  const MAX_LEN = 100
   return (
-    <div className="flex gap-2">
-      <Input 
-        placeholder="곡 제목을 입력하세요..." 
-        value={songTitle}
-        onChange={(e) => setSongTitle(e.target.value)}
-        className="glass border-none"
-      />
-      <Button onClick={() => {
+    <div className="flex flex-col gap-2">
+      <div className="relative">
+        <Textarea 
+          placeholder="신청 곡 제목을 입력하세요..." 
+          value={songTitle}
+          onChange={(e) => setSongTitle(e.target.value.slice(0, MAX_LEN))}
+          className="glass border-none"
+        />
+        <div className="text-[8px] text-right mt-0.5 text-muted-foreground">
+          {songTitle.length}/{MAX_LEN}
+        </div>
+      </div>
+      <Button className="w-full font-bold" onClick={() => {
+        if (!songTitle.trim()) {
+          toast.error('곡 제목을 입력해주세요.')
+          return
+        }
         onSubmit(songTitle)
+        onClose()
         setSongTitle('')
       }}>
-        요청
+        노래 신청하기
       </Button>
     </div>
   )
 }
 
-function ParticipantMessageForm({ onSubmit }: { onSubmit: (msg: string) => void }) {
+function ParticipantMessageForm({ onSubmit, onClose }: { onSubmit: (msg: string) => void, onClose: () => void }) {
   const [message, setMessage] = useState('')
+  const MAX_LEN = 300
   return (
-    <div className="flex gap-2">
-      <Input 
-        placeholder="쪽지 내용을 입력하세요..." 
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        className="glass border-none"
-      />
-      <Button size="icon" onClick={() => {
+    <div className="flex flex-col gap-2">
+      <div className="relative">
+        <Textarea 
+          placeholder="따뜻한 쪽지 내용을 입력하세요..." 
+          value={message}
+          onChange={(e) => setMessage(e.target.value.slice(0, MAX_LEN))}
+          className="glass border-none"
+        />
+        <div className="text-[8px] text-right mt-0.5 text-muted-foreground">
+          {message.length}/{MAX_LEN}
+        </div>
+      </div>
+      <Button className="w-full font-bold flex gap-2 items-center justify-center" onClick={() => {
+        if (!message.trim()) {
+          toast.error('내용을 입력해주세요.')
+          return
+        }
         onSubmit(message)
+        onClose()
         setMessage('')
       }}>
         <MessageCircle className="w-4 h-4" />
+        쪽지 보내기
       </Button>
     </div>
   )
@@ -234,7 +280,7 @@ export default function DashboardPage() {
     }
 
     // 즉시 팝업 닫기
-    setOpenInteractionId(null)
+    setTimeout(() => setOpenInteractionId(null), 0)
 
     const { error } = await supabase.from('messages').insert({
       content: msg,
@@ -260,8 +306,8 @@ export default function DashboardPage() {
       return
     }
     
-    // 즉시 팝업 닫기
-    setIsSosOpen(false)
+    // 즉시 팝업 닫기 (비동기 처리로 확실하게 반영)
+    setTimeout(() => setIsSosOpen(false), 0)
 
     const { error } = await supabase.from('alerts').insert({
       type: 'SOS',
@@ -271,7 +317,7 @@ export default function DashboardPage() {
     })
 
     if (!error) {
-      toast.success('관리자에게 SOS 요청을 보냈습니다!') // 기존 toast.error를 success로 수정
+      toast.success('관리자에게 SOS 요청을 보냈습니다!')
     } else {
       toast.error('SOS 전송 실패: ' + error.message)
     }
@@ -304,11 +350,13 @@ export default function DashboardPage() {
       : `🎵 노래 신청: ${title.trim()}`
 
     // 서버 요청 전 팝업 즉시 닫기
-    if (receiverId) {
-      setOpenInteractionId(null)
-    } else {
-      setIsMusicOpen(false)
-    }
+    setTimeout(() => {
+      if (receiverId) {
+        setOpenInteractionId(null)
+      } else {
+        setIsMusicOpen(false)
+      }
+    }, 0)
 
     const { error } = await supabase.from('alerts').insert({
       type: 'MUSIC',
@@ -492,12 +540,18 @@ export default function DashboardPage() {
                   <div className="space-y-4 border-t border-white/5 pt-4">
                     <div className="space-y-2">
                       <p className="text-xs font-bold text-muted-foreground px-1">🎵 {p.nickname}님에게 노래 요청</p>
-                      <ParticipantMusicForm onSubmit={(title) => handleSongRequest(title, p.id, p.nickname)} />
+                      <ParticipantMusicForm 
+                        onSubmit={(title) => handleSongRequest(title, p.id, p.nickname)} 
+                        onClose={() => setOpenInteractionId(null)}
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <p className="text-xs font-bold text-muted-foreground px-1">📩 익명 쪽지 보내기</p>
-                      <ParticipantMessageForm onSubmit={(msg) => handleSendMessage(msg, p.id, p.nickname)} />
+                      <ParticipantMessageForm 
+                        onSubmit={(msg) => handleSendMessage(msg, p.id, p.nickname)} 
+                        onClose={() => setOpenInteractionId(null)}
+                      />
                     </div>
                   </div>
                 </DialogContent>
@@ -523,7 +577,7 @@ export default function DashboardPage() {
             <DialogHeader>
               <DialogTitle className="text-center text-xl font-bold">도움이 필요하신가요? 🚨</DialogTitle>
             </DialogHeader>
-            <SosForm onSubmit={handleSOS} />
+            <SosForm onSubmit={handleSOS} onClose={() => setIsSosOpen(false)} />
           </DialogContent>
         </Dialog>
 
@@ -543,7 +597,7 @@ export default function DashboardPage() {
             <DialogHeader>
               <DialogTitle className="text-center text-xl font-bold">노래를 신청하시겠어요? 🎵</DialogTitle>
             </DialogHeader>
-            <GlobalMusicForm onSubmit={handleSongRequest} />
+            <GlobalMusicForm onSubmit={handleSongRequest} onClose={() => setIsMusicOpen(false)} />
           </DialogContent>
         </Dialog>
 

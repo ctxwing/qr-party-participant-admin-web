@@ -10,6 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { toast } from 'sonner'
 import { registerParticipant } from '@/app/actions/participant'
 import { createClient } from '@/lib/supabase'
+import { User, Sparkles, PartyPopper } from 'lucide-react'
 
 export default function SetupPage() {
   const router = useRouter()
@@ -19,14 +20,12 @@ export default function SetupPage() {
   const [submitting, setSubmitting] = useState(false)
   const supabase = createClient()
 
-  // 1. 이미 닉네임이 설정되어 있다면 대시보드로 이동 (Store 기반)
   useEffect(() => {
     if (!authLoading && participant?.nickname) {
       router.push('/dashboard')
     }
   }, [authLoading, participant, router])
 
-  // 2. 익명 사용자의 기존 등록 내역 확인 (DB 기반)
   useEffect(() => {
     const checkExistingParticipant = async () => {
       if (user && !participant) {
@@ -88,63 +87,84 @@ export default function SetupPage() {
 
   if (authLoading) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-slate-950 text-slate-50 gap-4">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        <div className="text-center">
-          <p className="font-bold">인증 정보 확인 중...</p>
-          <p className="text-xs opacity-50 mt-2">서버 연결이 늦어지고 있습니다. 잠시만 기다려주세요.</p>
-          <Button 
-            variant="link" 
-            className="text-primary text-xs mt-4" 
-            onClick={() => window.location.reload()}
-          >
-            화면 새로고침
-          </Button>
+      <div className="flex h-screen flex-col items-center justify-center bg-slate-950 text-white gap-6">
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Sparkles className="w-6 h-6 text-primary animate-pulse" />
+          </div>
+        </div>
+        <div className="text-center space-y-2">
+          <p className="text-xl font-black tracking-tight">인증 정보 확인 중...</p>
+          <p className="text-sm text-white/40">당신의 화려한 파티를 준비하고 있어요.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-500">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 p-6 relative overflow-hidden">
+      <div className="premium-blur-bg" />
+      
+      <div className="w-full max-w-md space-y-8 relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <div className="text-center space-y-4">
+          <div className="inline-flex p-3 rounded-2xl bg-vibrant-gradient shadow-lg mb-4">
+            <PartyPopper className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-4xl font-black tracking-tight text-white leading-tight">
             파티에 오신 것을<br />환영합니다!
           </h1>
+          <p className="text-white/60 font-medium">현장에서 사용하실 닉네임을 설정해주세요.</p>
         </div>
 
-        <Card className="glass border-none shadow-2xl">
-          <CardHeader>
-            <CardTitle>닉네임 설정</CardTitle>
-            <CardDescription>
-              현장에서 불릴 닉네임을 입력하세요. (최대 3회 변경 가능)
+        <Card className="glass border-none shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-vibrant-gradient" />
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-white">
+              <User className="w-5 h-5 text-primary" />
+              닉네임 설정
+            </CardTitle>
+            <CardDescription className="text-white/40">
+              최대 3회까지 변경 가능합니다.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
-            <CardContent>
-              <Input
-                placeholder="상큼체리, 젠틀맨 등..."
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                className="h-12 text-lg"
-                autoFocus
-              />
-              <p className="mt-2 text-xs text-muted-foreground text-right">
-                남은 변경 횟수: 3회
-              </p>
+            <CardContent className="pt-4">
+              <div className="relative group">
+                <Input
+                  placeholder="상큼체리, 젠틀맨 등..."
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  className="h-14 text-xl bg-white/5 border-white/10 focus:border-primary/50 focus:ring-primary/20 transition-all rounded-xl pl-4 pr-4 text-white placeholder:text-white/20"
+                  autoFocus
+                  maxLength={15}
+                />
+                <div className="absolute inset-x-0 bottom-0 h-[2px] bg-primary scale-x-0 group-focus-within:scale-x-100 transition-transform duration-500" />
+              </div>
+              <div className="flex justify-between items-center mt-3 px-1">
+                <p className="text-[10px] text-white/30 uppercase font-bold tracking-wider">
+                  Realtime Sync Enabled
+                </p>
+                <p className="text-xs text-white/60 font-bold">
+                  남은 횟수: <span className="text-primary">3</span>회
+                </p>
+              </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="pb-8">
               <Button
                 type="submit"
-                className="w-full h-12 text-lg font-bold bg-primary hover:bg-primary/90"
+                className="w-full h-14 text-xl font-black bg-vibrant-gradient hover:scale-[1.02] active:scale-95 transition-all shadow-xl rounded-xl border-t border-white/20"
                 disabled={submitting}
               >
-                {submitting ? '설정 중...' : '파티 참가 시작하기'}
+                {submitting ? '준비 중...' : '파티 참여하기'}
               </Button>
             </CardFooter>
           </form>
         </Card>
+        
+        <p className="text-center text-[10px] text-white/20 font-bold uppercase tracking-[0.2em]">
+          Secure Anonymous Connection
+        </p>
       </div>
     </div>
   )
