@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useSession, signOut } from '@/lib/auth-client'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,108 +21,26 @@ import 'ag-grid-community/styles/ag-theme-alpine.css'
 ModuleRegistry.registerModules([AllCommunityModule])
 
 export default function AdminPage() {
-  const [user, setUser] = useState<any>(null)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const supabase = createClient()
+  const router = useRouter()
+  const { data: session, isPending } = useSession()
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
-      setIsLoading(false)
+    if (!isPending && !session) {
+      router.push("/admin/login")
     }
-    checkUser()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      toast.error('로그인 실패: ' + error.message)
-    } else {
-      toast.success('관리자 로그인 성공')
-    }
-    setIsLoading(false)
-  }
+  }, [session, isPending, router])
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    await signOut()
     toast.success('로그아웃 되었습니다.')
+    router.push("/admin/login")
   }
 
-  if (isLoading) {
+  if (isPending || !session) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white gap-6">
         <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
         <p className="text-sm font-bold tracking-widest opacity-50 uppercase">Loading Console...</p>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative overflow-hidden">
-        <div className="premium-blur-bg" />
-        <Card className="w-full max-w-md glass border-none shadow-[0_32px_64px_rgba(0,0,0,0.5)] relative z-10">
-          <div className="absolute top-0 left-0 w-full h-1 bg-vibrant-gradient" />
-          <CardHeader className="text-center pt-10">
-            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 border border-primary/20 shadow-inner">
-              <ShieldCheck className="text-primary w-8 h-8" />
-            </div>
-            <CardTitle className="text-3xl font-black tracking-tighter text-white">ADMIN CONSOLE</CardTitle>
-            <CardDescription className="text-white/40 font-medium">관리자 계정으로 보안 접속하십시오.</CardDescription>
-          </CardHeader>
-          <CardContent className="pb-10">
-            <form onSubmit={handleLogin} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Account Email</label>
-                <Input 
-                  type="email" 
-                  placeholder="admin@example.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-white/5 border-white/10 h-12 focus:ring-primary/20 focus:border-primary/50"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Password</label>
-                <div className="relative">
-                  <Input 
-                    type={showPassword ? "text" : "password"} 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="bg-white/5 border-white/10 h-12 pr-12 focus:ring-primary/20 focus:border-primary/50"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-              <Button type="submit" className="w-full h-14 text-lg font-black bg-vibrant-gradient hover:scale-[1.02] active:scale-95 transition-all shadow-xl rounded-xl border-t border-white/20" disabled={isLoading}>
-                {isLoading ? 'SECURE LOGIN...' : 'ACCESS CONSOLE'}
-              </Button>
-            </form>
-          </CardContent>
-          <div className="bg-black/20 p-4 text-center border-t border-white/5">
-            <p className="text-[10px] text-white/20 font-bold uppercase tracking-widest">Authorized Access Only</p>
-          </div>
-        </Card>
       </div>
     )
   }
