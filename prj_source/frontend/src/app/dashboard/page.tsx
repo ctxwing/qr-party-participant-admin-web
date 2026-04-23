@@ -195,6 +195,9 @@ export default function DashboardPage() {
       return
     }
 
+    // 사용자 체감 속도를 위해 다이얼로그 즉시 닫기
+    setOpenInteractionId(null)
+
     // 1. 상호작용 기록 추가
     const { error: insError } = await supabase.from('interactions').insert({
       type,
@@ -215,7 +218,6 @@ export default function DashboardPage() {
 
     toast.success(`${targetNickname}님에게 ${type === 'CUPID' ? '큐피트' : '호감도'}를 보냈습니다!`)
     fetchMyStats()
-    setOpenInteractionId(null)
   }
 
   const handleSendMessage = async (msg: string, targetUserId: string, targetNickname: string) => {
@@ -231,6 +233,9 @@ export default function DashboardPage() {
       return
     }
 
+    // 즉시 팝업 닫기
+    setOpenInteractionId(null)
+
     const { error } = await supabase.from('messages').insert({
       content: msg,
       sender_id: participant.id,
@@ -242,7 +247,6 @@ export default function DashboardPage() {
       toast.error('쪽지 전송 실패')
     } else {
       toast.success(`${targetNickname}님에게 쪽지를 보냈습니다.`)
-      setOpenInteractionId(null)
     }
   }
 
@@ -256,6 +260,9 @@ export default function DashboardPage() {
       return
     }
     
+    // 즉시 팝업 닫기
+    setIsSosOpen(false)
+
     const { error } = await supabase.from('alerts').insert({
       type: 'SOS',
       participant_id: participant.id,
@@ -264,8 +271,7 @@ export default function DashboardPage() {
     })
 
     if (!error) {
-      toast.error('관리자에게 SOS 요청을 보냈습니다!')
-      setIsSosOpen(false)
+      toast.success('관리자에게 SOS 요청을 보냈습니다!') // 기존 toast.error를 success로 수정
     } else {
       toast.error('SOS 전송 실패: ' + error.message)
     }
@@ -297,6 +303,13 @@ export default function DashboardPage() {
       ? `🎵 ${targetNickname}님에게 노래를 신청했습니다: ${title.trim()}`
       : `🎵 노래 신청: ${title.trim()}`
 
+    // 서버 요청 전 팝업 즉시 닫기
+    if (receiverId) {
+      setOpenInteractionId(null)
+    } else {
+      setIsMusicOpen(false)
+    }
+
     const { error } = await supabase.from('alerts').insert({
       type: 'MUSIC',
       participant_id: participant.id,
@@ -307,11 +320,6 @@ export default function DashboardPage() {
 
     if (!error) {
       toast.success(receiverId ? `${targetNickname}님에게 노래를 요청했습니다!` : '노래 신청을 보냈습니다!')
-      if (receiverId) {
-        setOpenInteractionId(null)
-      } else {
-        setIsMusicOpen(false)
-      }
     } else {
       toast.error('노래 신청 실패: ' + error.message)
     }
