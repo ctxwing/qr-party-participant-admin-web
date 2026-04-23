@@ -6,7 +6,9 @@
  */
 import { betterAuth } from "better-auth";
 
-export const auth = betterAuth({
+export const auth = process.env.NODE_ENV === "test" 
+  ? { api: { getSession: async () => null }, handler: () => {} } as any
+  : betterAuth({
   // Supabase PostgreSQL 직접 연결 (pooler)
   database: {
     type: "postgres",
