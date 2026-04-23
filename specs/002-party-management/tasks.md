@@ -56,11 +56,11 @@
     - [x] 3_prj_docs/완료내역/TASK_T008_완료내역.md 작성 (테스트 성공 결과 포함)
     - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
     - [x] 한글 메시지로 git commit 및 git push 수행
-- [ ] T009 [US1] 실시간 공지 발송 API 및 Supabase 브로드캐스트 연동 (`/api/admin/announcements`)
-    - [ ] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
-    - [ ] 3_prj_docs/완료내역/TASK_T009_완료내역.md 작성 (테스트 성공 결과 포함)
-    - [ ] 현재 tasks.md 내 해당 항목 완료 체크([x])
-    - [ ] 한글 메시지로 git commit 및 git push 수행
+- [x] T009 [US1] 실시간 공지 발송 API 및 Supabase 브로드캐스트 연동 (`/api/admin/announcements`)
+    - [x] 관련 테스트(단위/Smoke/E2E) 실행 및 통과 확인 (결과 로그 확인 필수)
+    - [x] 3_prj_docs/완료내역/TASK_T009_완료내역.md 작성 (테스트 성공 결과 포함)
+    - [x] 현재 tasks.md 내 해당 항목 완료 체크([x])
+    - [x] 한글 메시지로 git commit 및 git push 수행
 
 ### STEP 3.2: 프론트엔드 UI 및 통합 (MVP)
 - [ ] T010 [US1] 관리자 로그인 페이지 UI 및 인증 연동 구현
