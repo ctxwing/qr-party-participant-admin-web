@@ -178,6 +178,10 @@ export default function DashboardPage() {
   const handleInteraction = async (type: 'CUPID' | 'LIKE', targetUserId: string, targetNickname: string) => {
     triggerHaptic()
     if (!participant?.id || !myProfile) return
+    if (!sessionId) {
+      toast.error('활성화된 파티 세션이 없습니다.')
+      return
+    }
     
     const countField = type === 'CUPID' ? 'cupid_count' : 'like_count'
     if (myProfile[countField] <= 0) {
@@ -216,6 +220,10 @@ export default function DashboardPage() {
 
   const handleSendMessage = async (msg: string, targetUserId: string, targetNickname: string) => {
     if (!msg.trim() || !participant?.id) return
+    if (!sessionId) {
+      toast.error('활성화된 파티 세션이 없습니다.')
+      return
+    }
     
     const { allowed, remaining } = checkRateLimit(participant.id)
     if (!allowed) {
@@ -242,7 +250,11 @@ export default function DashboardPage() {
     triggerHaptic()
     if (!participant?.id) return
 
-    const { data: session } = await supabase.from('party_sessions').select('id').eq('status', 'ONGOING').single()
+    const { data: session } = await supabase.from('party_sessions').select('id').eq('status', 'ONGOING').maybeSingle()
+    if (!session?.id) {
+      toast.error('활성화된 파티 세션이 없습니다.')
+      return
+    }
     
     const { error } = await supabase.from('alerts').insert({
       type: 'SOS',
@@ -260,7 +272,11 @@ export default function DashboardPage() {
   }
 
   const handleSongRequest = async (title: string, receiverId?: string, targetNickname?: string) => {
-    if (!participant || !sessionId) return
+    if (!participant?.id) return
+    if (!sessionId) {
+      toast.error('활성화된 파티 세션이 없습니다.')
+      return
+    }
     
     // 쿨타임 체크
     const now = Date.now()
