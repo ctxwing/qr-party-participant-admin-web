@@ -16,6 +16,7 @@ import { createClient } from '@/lib/supabase'
 import { AgGridReact } from 'ag-grid-react'
 import { ColDef } from 'ag-grid-community'
 import { defaultColDef, AG_GRID_THEME } from '@/lib/ag-grid-setup'
+import { GuideFlow } from "@/components/admin/guide-flow"
 
 export default function AdminPage() {
   const router = useRouter()
@@ -443,6 +444,10 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="min-h-screen bg-slate-950 text-white p-6 space-y-8 relative overflow-hidden">
       <div className="premium-blur-bg opacity-30" />
+      
+      <div className="max-w-7xl mx-auto relative z-10">
+        <GuideFlow currentStep={sessionStatus === 'ONGOING' ? 'start' : sessionStatus === 'FINISHED' ? 'finish' : 'create'} />
+      </div>
       
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
         <div className="flex items-center gap-4">

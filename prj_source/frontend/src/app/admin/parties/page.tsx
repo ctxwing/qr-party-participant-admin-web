@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Search, RefreshCw, Edit, ExternalLink, Calendar, Users } from "lucide-react";
+import { GuideFlow } from "@/components/admin/guide-flow";
 
 export default function PartyListPage() {
   const router = useRouter();
@@ -126,6 +127,8 @@ export default function PartyListPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-8">
       <div className="max-w-7xl mx-auto space-y-8">
+        <GuideFlow currentStep="create" />
+        
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-6">
           <div className="space-y-1">
             <h1 className="text-3xl font-bold tracking-tight">Party Management</h1>
