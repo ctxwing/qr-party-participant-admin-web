@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { parties } from "../../../../../../database/schema";
+import { parties } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/auth-middleware";
 import { desc, eq } from "drizzle-orm";
 

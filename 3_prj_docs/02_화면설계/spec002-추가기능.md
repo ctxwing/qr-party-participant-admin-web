@@ -40,8 +40,27 @@
 
 ---
 
-## 3. 개발 시 강제 준수 사항
+## 3. 운영 정책 및 품질 규격 (Ops & Quality)
+
+### 3.1 파티 상태 배지 컬러 시스템
+상태별 시인성을 확보하고 시스템 내 다른 요소와 시각적으로 구분합니다.
+- **대기 (Ready)**: `bg-amber-500/20 text-amber-400` (Amber)
+- **진행 중 (Live)**: `bg-emerald-500/20 text-emerald-400` (Emerald) + Glow 애니메이션
+- **종료 (Ended)**: `bg-slate-500/20 text-slate-400` (Slate)
+
+### 3.2 QR 코드 인쇄 규격
+- **출력 크기**: 최소 1024px x 1024px 보장.
+- **포맷**: 웹용 PNG 및 인쇄용 SVG 동시 제공.
+- **오류 복구**: `level="H"` 설정을 통해 30% 손상 시에도 인식 가능하도록 구현.
+
+### 3.3 실시간성 검증 및 성능 측정
+- **지연 시간 측정**: 메시지 페이로드에 `sent_at` 포함, 수신 측에서 Latency 로그 출력.
+- **시스템 상태 위젯**: 관리자 모니터링 피드(T023) 상단에 실시간 Latency 현황 표시.
+
+---
+
+## 4. 개발 시 강제 준수 사항
 
 1. **디자인 테마**: 기존 [03_UI개선_0423.md](file:///home/ctxwing/docker-ctx/lancer/qr-party-participant-admin-web/3_prj_docs/02_%ED%99%94%EB%A9%B4%EC%84%A4%EA%B3%84/03_UI%EA%B0%9C%EC%84%A0_0423.md)에서 정의한 Glassmorphism 및 Dark Mode 테마를 엄격히 준수할 것.
 2. **트랜잭션 처리**: 전체 일괄 지급 시 데이터 누락이 없도록 DB 트랜잭션 또는 RPC(Remote Procedure Call)를 사용하여 무결성을 보장할 것.
-3. **참조 우선순위**: 기능 구현 시 `spec.md`보다 본 `spec002-추가기능.md`의 UI 설계를 우선적으로 참조할 것.
+3. **참조 우선순위**: 기능 구현 시 `spec.md`보다 본 `spec002-추가기능.md`의 UI 설계 및 운영 정책을 최우선적으로 참조할 것.
