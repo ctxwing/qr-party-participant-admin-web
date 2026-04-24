@@ -11,7 +11,7 @@
 
 ## Technical Context
 
-**Language/Version**: Bun 1.1+, Next.js 16.2.1+, Python 3.13+ (uv 가상환경)
+**Language/Version**: Bun 1.1+, Next.js 16.2.1+ *(참고: Python 3.13+ 및 uv는 에이전트/툴링용으로 한정)*
 **Primary Dependencies**: ag-grid-react v35+, Better Auth (관리자 인증), shadcn/ui, Tailwind CSS, Zustand, Supabase SDK, Drizzle ORM, qrcode.react
 **Storage**: Supabase/PostgreSQL (Drizzle ORM 활용)
 **Testing**: Bun test

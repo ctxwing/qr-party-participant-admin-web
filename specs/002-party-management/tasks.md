@@ -142,6 +142,7 @@
     - [x] 3_prj_docs/완료내역/TASK_T022_완료내역.md 작성
 - [x] T023 [US5] 실시간 통합 모니터링 피드 및 닉네임 로그 뷰어 구현 (참조: [spec002-추가기능.md](file:///home/ctxwing/docker-ctx/lancer/qr-party-participant-admin-web/3_prj_docs/02_%ED%99%94%EB%A9%B4%EC%84%A4%EA%B3%84/spec002-%EC%B6%94%EA%B0%80%EA%B8%B0%EB%8A%A5.md))
     - [x] 모든 상호작용(쪽지, 호감도, SOS) 실시간 스트리밍 대시보드 구축
+    - [x] 대규모 실시간 로그 렌더링 성능 확보를 위한 가상 스크롤(Virtual Scroll) 적용
     - [x] **시스템 실시간성 지연 시간(Latency) 모니터링 위젯 추가**
     - [x] 참여자별 닉네임 변경 전후 이력 추적 및 조회 기능 구현
     - [x] 3_prj_docs/완료내역/TASK_T023_완료내역.md 작성

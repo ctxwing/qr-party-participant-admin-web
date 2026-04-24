@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,11 @@ import {
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase";
 
+// 가상 스크롤 상수: 각 피드 항목의 고정 높이(px)와 버퍼 영역
+const ITEM_HEIGHT = 88;
+const OVERSCAN = 5; // 화면 위아래로 미리 렌더링할 여유 항목 수
+const MAX_ACTIVITIES = 500; // 메모리에 보관할 최대 활동 수 (기존 100 → 500)
+
 export default function AdminMonitoringPage() {
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +34,10 @@ export default function AdminMonitoringPage() {
   const [latency, setLatency] = useState<number | null>(null);
   const supabase = createClient();
   const lastUpdateRef = useRef<number>(Date.now());
+
+  // 가상 스크롤 상태
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
 
   // 데이터 로드
   const fetchActivities = async () => {
@@ -71,13 +80,13 @@ export default function AdminMonitoringPage() {
   }, []);
 
   const handleNewActivity = (newAct: any) => {
-    // Latency 계산 (sent_at 페이로드가 있다고 가정하거나 현재 시간과 비교)
+    // Latency 계산
     const now = Date.now();
     const sentAt = newAct.created_at ? new Date(newAct.created_at).getTime() : now;
     const diff = now - sentAt;
     setLatency(diff > 0 ? diff : 0);
     
-    setActivities(prev => [newAct, ...prev].slice(0, 100));
+    setActivities(prev => [newAct, ...prev].slice(0, MAX_ACTIVITIES));
     
     if (newAct.category === "announcement" || (newAct.category === "interaction" && newAct.type === "cupid")) {
       playAlertSound();
@@ -89,6 +98,34 @@ export default function AdminMonitoringPage() {
     const audio = new Audio("/alert-chime.mp3");
     audio.play().catch(() => {});
   };
+
+  // 스크롤 이벤트 핸들러 (throttle 불필요 - requestAnimationFrame으로 최적화)
+  const handleScroll = useCallback(() => {
+    if (scrollContainerRef.current) {
+      setScrollTop(scrollContainerRef.current.scrollTop);
+    }
+  }, []);
+
+  // 가상 스크롤 윈도잉 계산 (화면에 보이는 항목만 추출)
+  const { visibleItems, totalHeight, offsetY } = useMemo(() => {
+    const containerHeight = scrollContainerRef.current?.clientHeight || 600;
+    const totalHeight = activities.length * ITEM_HEIGHT;
+
+    const startIdx = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - OVERSCAN);
+    const endIdx = Math.min(
+      activities.length,
+      Math.ceil((scrollTop + containerHeight) / ITEM_HEIGHT) + OVERSCAN
+    );
+
+    return {
+      visibleItems: activities.slice(startIdx, endIdx).map((act, i) => ({
+        ...act,
+        _virtualIdx: startIdx + i,
+      })),
+      totalHeight,
+      offsetY: startIdx * ITEM_HEIGHT,
+    };
+  }, [activities, scrollTop]);
 
   const getActivityIcon = (act: any) => {
     switch (act.category) {
@@ -149,6 +186,10 @@ export default function AdminMonitoringPage() {
               </span>
             </div>
           </div>
+          {/* 활동 건수 배지 */}
+          <Badge variant="outline" className="text-[10px] bg-white/5 border-white/10 font-mono">
+            {activities.length} logs
+          </Badge>
           <Button 
             variant="outline" 
             onClick={() => setSoundEnabled(!soundEnabled)}
@@ -159,7 +200,8 @@ export default function AdminMonitoringPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto space-y-4 relative z-10">
+      {/* 가상 스크롤 기반 피드 목록 */}
+      <div className="max-w-4xl mx-auto relative z-10">
         {activities.length === 0 && !loading && (
           <div className="text-center py-32 space-y-4">
             <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -169,35 +211,52 @@ export default function AdminMonitoringPage() {
           </div>
         )}
 
-        {activities.map((act, idx) => (
-          <div 
-            key={`${act.id}-${idx}`}
-            className="group relative flex items-start gap-4 p-5 rounded-2xl glass border-white/5 hover:border-white/10 transition-all animate-in fade-in slide-in-from-bottom-2 duration-500"
+        {activities.length > 0 && (
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="overflow-y-auto"
+            style={{ height: "calc(100vh - 280px)" }}
           >
-            <div className={`p-3 rounded-xl bg-white/5 group-hover:scale-110 transition-transform`}>
-              {getActivityIcon(act)}
-            </div>
-            <div className="flex-1 space-y-1">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[9px] uppercase tracking-tighter bg-white/5 border-white/10">
-                    {act.category}
-                  </Badge>
-                  <span className="text-xs text-zinc-500 font-mono">
-                    {new Date(act.created_at).toLocaleTimeString()}
-                  </span>
-                </div>
-                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ArrowUpRight className="h-3 w-3" />
-                </Button>
+            {/* 전체 높이를 확보하는 더미 컨테이너 */}
+            <div style={{ height: totalHeight, position: "relative" }}>
+              {/* 실제 보이는 항목만 렌더링 (offsetY만큼 내려서 위치 보정) */}
+              <div style={{ transform: `translateY(${offsetY}px)` }}>
+                {visibleItems.map((act) => (
+                  <div
+                    key={`${act.id}-${act._virtualIdx}`}
+                    className="group relative flex items-start gap-4 p-5 rounded-2xl glass border-white/5 hover:border-white/10 transition-all mb-2"
+                    style={{ height: ITEM_HEIGHT - 8 }}
+                  >
+                    <div className="p-3 rounded-xl bg-white/5 group-hover:scale-110 transition-transform">
+                      {getActivityIcon(act)}
+                    </div>
+                    <div className="flex-1 space-y-1 overflow-hidden">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-[9px] uppercase tracking-tighter bg-white/5 border-white/10">
+                            {act.category}
+                          </Badge>
+                          <span className="text-xs text-zinc-500 font-mono">
+                            {new Date(act.created_at).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <ArrowUpRight className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <p className="text-zinc-100 font-medium tracking-tight truncate">
+                        {getActivityText(act)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <p className="text-zinc-100 font-medium tracking-tight">
-                {getActivityText(act)}
-              </p>
             </div>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
 }
+
