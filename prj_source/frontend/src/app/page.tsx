@@ -28,7 +28,7 @@ export default function LandingPage() {
           </div>
 
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-primary-foreground/60 mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-white/80 mb-2">
               <Sparkles className="w-3 h-3 text-primary" />
               Next Gen Party Experience
             </div>

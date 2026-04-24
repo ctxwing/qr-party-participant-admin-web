@@ -28,6 +28,7 @@ export default function RankingPage() {
   const [loading, setLoading] = useState(true)
   const [currentWeights, setCurrentWeights] = useState<any>({ like: 1, message: 5, cupid: 10 })
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null)
+  const [partyInfo, setPartyInfo] = useState<any>(null)
   const supabase = createClient()
 
   const fetchRankings = async () => {
@@ -36,13 +37,21 @@ export default function RankingPage() {
       const weights = settings?.value || { like: 1, message: 5, cupid: 10 }
       setCurrentWeights(weights)
 
-      const { data: participants } = await supabase.from('participants').select('id, nickname')
+      if (participant?.id) {
+        const { data: me } = await supabase.from('participants').select('party_id').eq('id', participant.id).single()
+        if (me?.party_id) {
+          const { data: party } = await supabase.from('parties').select('*').eq('id', me.party_id).single()
+          if (party) setPartyInfo(party)
+        }
+      }
+
+      const { data: participantsList } = await supabase.from('participants').select('id, nickname')
       const { data: interactions } = await supabase.from('interactions').select('receiver_id, type')
       const { data: messages } = await supabase.from('messages').select('receiver_id')
 
-      if (!participants) return
+      if (!participantsList) return
 
-      const rankings = participants.map(p => {
+      const rankings = participantsList.map(p => {
         const lCount = interactions?.filter(i => i.receiver_id === p.id && i.type === 'heart').length || 0
         const cCount = interactions?.filter(i => i.receiver_id === p.id && i.type === 'cupid').length || 0
         const mCount = messages?.filter(m => m.receiver_id === p.id).length || 0
@@ -90,7 +99,19 @@ export default function RankingPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-black tracking-tighter uppercase">Hall of Fame</h1>
-            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Real-time Popularity Ranking</p>
+            <div className="mt-1 flex flex-col gap-0.5">
+              <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Real-time Popularity Ranking</p>
+              {partyInfo && (
+                <>
+                  <p className="text-emerald-400 text-xs font-bold tracking-widest mt-1">{partyInfo.name}</p>
+                  {(partyInfo.start_at || partyInfo.end_at) && (
+                    <p className="text-zinc-500 text-[10px] font-medium uppercase tracking-widest">
+                      {partyInfo.start_at ? new Date(partyInfo.start_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : ''} ~ {partyInfo.end_at ? new Date(partyInfo.end_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
 

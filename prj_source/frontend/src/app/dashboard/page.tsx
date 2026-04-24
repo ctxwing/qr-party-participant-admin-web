@@ -18,7 +18,9 @@ import {
   Clock, 
   Inbox,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Music,
+  Trophy
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
@@ -109,6 +111,7 @@ export default function DashboardPage() {
   const [isSosOpen, setIsSosOpen] = useState(false);
   const [isMusicOpen, setIsMusicOpen] = useState(false);
   const [activeAnnouncement, setActiveAnnouncement] = useState<any>(null);
+  const [totalParticipants, setTotalParticipants] = useState<number>(0);
   
   const supabase = createClient()
 
@@ -120,12 +123,21 @@ export default function DashboardPage() {
     if (me) {
       setMyProfile(me);
       // 파티 정보 (타이머용)
-      const { data: party } = await supabase.from('parties').select('*').eq('id', me.party_id).single();
-      setPartyInfo(party);
+      if (me.party_id) {
+        const { data: party } = await supabase.from('parties').select('*').eq('id', me.party_id).single();
+        setPartyInfo(party);
+      }
     }
 
-    const { data: others } = await supabase.from('participants').select('id, nickname, last_active').neq('id', participant.id).order('last_active', { ascending: false }).limit(40);
+    const { data: others, count } = await supabase.from('participants')
+      .select('id, nickname, last_active', { count: 'exact' })
+      .eq('party_id', me?.party_id || '')
+      .neq('id', participant.id)
+      .order('last_active', { ascending: false })
+      .limit(40);
+      
     setParticipants(others || []);
+    setTotalParticipants((count || 0) + 1); // 본인 포함 총 인원
 
     // 2. 스탯 및 쪽지 보관함
     const { data: msgs } = await supabase.from('messages').select('*').eq('receiver_id', participant.id).order('created_at', { ascending: false });
@@ -170,6 +182,24 @@ export default function DashboardPage() {
     setIsSosOpen(false);
   };
 
+  const handleMusicRequest = async (song: string) => {
+    if (!song.trim()) return;
+    const { error } = await supabase.from('interactions').insert({
+      sender_id: myProfile.id,
+      party_id: myProfile.party_id,
+      type: 'music_request',
+      content: song
+    });
+    if (!error) toast.success('노래 신청이 접수되었습니다! 🎵');
+    setIsMusicOpen(false);
+  };
+
+  const formatTime = (isoString?: string) => {
+    if (!isoString) return '';
+    const d = new Date(isoString);
+    return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-4 pb-24 relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-rose-500 to-amber-500" />
@@ -180,7 +210,15 @@ export default function DashboardPage() {
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-4xl font-black tracking-tighter">DASHBOARD</h1>
-              <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">{myProfile?.nickname} / {partyInfo?.name}</p>
+              <div className="mt-1 flex flex-col gap-1">
+                <p className="text-emerald-400 text-sm font-bold tracking-widest">{partyInfo?.name}</p>
+                {(partyInfo?.start_at || partyInfo?.end_at) && (
+                  <p className="text-zinc-500 text-xs font-medium uppercase tracking-widest">
+                    {formatTime(partyInfo?.start_at)} ~ {formatTime(partyInfo?.end_at)}
+                  </p>
+                )}
+                <p className="text-indigo-400 text-xs font-bold uppercase tracking-widest mt-1">👤 {myProfile?.nickname}</p>
+              </div>
             </div>
             {partyInfo?.end_at && <CountdownTimer targetDate={partyInfo.end_at} />}
           </div>
@@ -218,6 +256,9 @@ export default function DashboardPage() {
           <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
             Active Participants
+            <span className="ml-auto bg-white/10 px-2 py-0.5 rounded-full text-xs text-white/80 font-mono">
+              {totalParticipants}명
+            </span>
           </h2>
           <div className="grid grid-cols-2 gap-3">
             {participants.map(p => (
@@ -230,24 +271,57 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 하단 탭 바... (기존 SOS, Music 등 유지) */}
-      <div className="fixed bottom-8 left-0 right-0 flex justify-center gap-4 px-6">
-        <Button className="rounded-full bg-rose-600 h-14 w-14 p-0 shadow-xl shadow-rose-500/20" onClick={() => setIsSosOpen(true)}>
-          <AlertTriangle className="w-6 h-6" />
+      {/* 하단 탭 바 (3등분 균일화 및 글래스모피즘 테마) */}
+      <div className="fixed bottom-8 left-0 right-0 flex justify-center gap-3 px-6 max-w-md mx-auto z-40">
+        <Button 
+          className="flex-1 rounded-2xl btn-glass-sos h-14 font-bold flex flex-col gap-1 items-center justify-center p-0" 
+          onClick={() => setIsSosOpen(true)}
+        >
+          <AlertTriangle className="w-5 h-5" />
+          <span className="text-[10px] tracking-widest uppercase">SOS</span>
         </Button>
-        <Link href="/ranking">
-          <Button className="rounded-full glass h-14 px-8 font-bold border-white/10">RANKING</Button>
+        
+        <Button 
+          className="flex-1 rounded-2xl btn-glass-music h-14 font-bold flex flex-col gap-1 items-center justify-center p-0" 
+          onClick={() => setIsMusicOpen(true)}
+        >
+          <Music className="w-5 h-5" />
+          <span className="text-[10px] tracking-widest uppercase">MUSIC</span>
+        </Button>
+
+        <Link href="/ranking" className="flex-1">
+          <Button className="w-full rounded-2xl btn-glass-rank h-14 font-bold flex flex-col gap-1 items-center justify-center p-0">
+            <Trophy className="w-5 h-5" />
+            <span className="text-[10px] tracking-widest uppercase">RANK</span>
+          </Button>
         </Link>
       </div>
 
-      {/* SOS 다이얼로그 등... */}
+      {/* SOS 다이얼로그 */}
       <Dialog open={isSosOpen} onOpenChange={setIsSosOpen}>
-        <DialogContent className="glass border-none max-w-[90%] rounded-3xl">
-          <DialogHeader><DialogTitle>관리자 호출 (SOS)</DialogTitle></DialogHeader>
-          <Textarea placeholder="도움이 필요하신가요?" className="glass border-none mb-4" />
-          <Button onClick={() => handleSOS('도움 요청')} className="w-full bg-rose-600 font-bold h-12">보내기</Button>
+        <DialogContent className="glass border-white/10 max-w-[90%] rounded-3xl p-6">
+          <DialogHeader><DialogTitle className="text-xl font-black text-rose-500 flex items-center gap-2"><AlertTriangle className="w-6 h-6"/> 관리자 호출 (SOS)</DialogTitle></DialogHeader>
+          <p className="text-sm text-zinc-400 mb-2">어떤 문제가 발생했나요? 관리자가 곧 확인합니다.</p>
+          <Textarea id="sos-message" placeholder="도움이 필요한 내용을 적어주세요..." className="bg-white/5 border-white/10 text-white rounded-xl resize-none h-24 mb-4" />
+          <Button onClick={() => {
+            const msg = (document.getElementById('sos-message') as HTMLTextAreaElement).value;
+            handleSOS(msg);
+          }} className="w-full btn-glass-sos font-bold h-14 rounded-2xl text-lg">SOS 보내기</Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* 노래 신청 다이얼로그 */}
+      <Dialog open={isMusicOpen} onOpenChange={setIsMusicOpen}>
+        <DialogContent className="glass border-white/10 max-w-[90%] rounded-3xl p-6">
+          <DialogHeader><DialogTitle className="text-xl font-black text-cyan-400 flex items-center gap-2"><Music className="w-6 h-6"/> 노래 신청하기</DialogTitle></DialogHeader>
+          <p className="text-sm text-zinc-400 mb-2">듣고 싶은 노래의 제목과 가수를 적어주세요.</p>
+          <Input id="music-input" placeholder="예: 뉴진스 - Hype Boy" className="bg-white/5 border-white/10 text-white h-14 rounded-xl mb-4" />
+          <Button onClick={() => {
+            const song = (document.getElementById('music-input') as HTMLInputElement).value;
+            handleMusicRequest(song);
+          }} className="w-full btn-glass-music font-bold h-14 rounded-2xl text-lg">신청하기</Button>
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }
