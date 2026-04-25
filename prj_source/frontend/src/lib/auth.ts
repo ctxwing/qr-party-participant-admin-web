@@ -1,51 +1,32 @@
-/**
- * Better Auth 서버 설정
- * - 관리자 ID/PWD 인증 (email + password)
- * - Supabase PostgreSQL 연동
- * 작성자: ctxwing@gmail.com
- */
 import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "./db";
-import * as schema from "./db/schema";
+import { PostgresDialect } from "kysely";
+import { client } from "./db";
+import { PostgresJsPool } from "./pg-pool-adapter";
 
-export const auth = process.env.NODE_ENV === "test" 
+const pool = new PostgresJsPool(client);
+
+export const auth = process.env.NODE_ENV === "test"
   ? { api: { getSession: async () => null }, handler: () => {} } as any
   : betterAuth({
-  database: drizzleAdapter(db, {
-    provider: "pg",
-    schema: {
-      user: schema.user,
-      session: schema.session,
-      account: schema.account,
-      verification: schema.verification,
-    },
-  }),
+  database: new PostgresDialect({ pool }),
 
-  // 이메일+패스워드 인증 (관리자 로그인용)
   emailAndPassword: {
     enabled: true,
-    // 자체 가입은 비활성 (관리자 수동 등록)
     autoSignIn: true,
   },
 
-  // 세션 설정
   session: {
-    // 세션 유효 기간: 7일
     expiresIn: 60 * 60 * 24 * 7,
-    // 세션 갱신 주기: 1일
     updateAge: 60 * 60 * 24,
     cookieCache: {
       enabled: true,
-      maxAge: 60 * 5, // 5분 캐시
+      maxAge: 60 * 5,
     },
   },
 
-  // 기본 URL 설정
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
 });
 
-// 타입 내보내기
 export type Session = typeof auth.$Infer.Session.session;
 export type User = typeof auth.$Infer.Session.user;

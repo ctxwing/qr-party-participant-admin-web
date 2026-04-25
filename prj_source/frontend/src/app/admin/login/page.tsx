@@ -18,8 +18,8 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleDevLogin = async () => {
-    setEmail("admin@example.com");
-    setPassword("admin1234");
+    setEmail("admin@gmail.com");
+    setPassword("Admin1234!");
     // 상태 반영 후 로그인을 시도하기 위해 약간의 지연을 줍니다.
     setTimeout(() => {
       const loginButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
