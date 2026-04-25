@@ -5,7 +5,13 @@ import postgres from "postgres";
 const connectionString = process.env.DATABASE_URL!;
 
 // postgres 클라이언트 생성
-const client = postgres(connectionString, { prepare: false });
+const client = postgres(connectionString, { 
+  prepare: false,
+  ssl: {
+    servername: 'db.hlbgedbgycamzvbbykdc.supabase.co',
+    rejectUnauthorized: false,
+  },
+});
 
 // Drizzle 인스턴스 생성
 export const db = drizzle(client);
