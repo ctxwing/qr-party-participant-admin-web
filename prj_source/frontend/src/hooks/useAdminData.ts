@@ -86,6 +86,7 @@ export function useAdminData(adminUserId?: string) {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
+            'apikey': anonKey,
             'Authorization': `Bearer ${anonKey}`,
             'x-admin-user-id': adminUserId,
             'Prefer': 'return=representation',
