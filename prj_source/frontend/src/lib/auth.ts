@@ -1,14 +1,13 @@
 import { betterAuth } from "better-auth";
-import { PostgresDialect } from "kysely";
+import { PostgresJSDialect } from "kysely-postgres-js";
 import { client } from "./db";
-import { PostgresJsPool } from "./pg-pool-adapter";
-
-const pool = new PostgresJsPool(client);
 
 export const auth = process.env.NODE_ENV === "test"
   ? { api: { getSession: async () => null }, handler: () => {} } as any
   : betterAuth({
-  database: new PostgresDialect({ pool }),
+  database: new PostgresJSDialect({
+    postgres: client,
+  }),
 
   emailAndPassword: {
     enabled: true,

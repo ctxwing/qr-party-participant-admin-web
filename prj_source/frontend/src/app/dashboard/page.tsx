@@ -108,10 +108,13 @@ export default function DashboardPage() {
   
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = useState(false);
+  const [newNickname, setNewNickname] = useState('');
+  const [nicknameHistory, setNicknameHistory] = useState<any[]>([]);
   const [isSosOpen, setIsSosOpen] = useState(false);
   const [isMusicOpen, setIsMusicOpen] = useState(false);
   const [activeAnnouncement, setActiveAnnouncement] = useState<any>(null);
   const [totalParticipants, setTotalParticipants] = useState<number>(0);
+  const [announcementPopup, setAnnouncementPopup] = useState<any>(null);
   
   const supabase = createClient()
 
@@ -131,7 +134,6 @@ export default function DashboardPage() {
 
     const { data: others, count } = await supabase.from('participants')
       .select('id, nickname, last_active', { count: 'exact' })
-      .eq('party_id', me?.party_id || '')
       .neq('id', participant.id)
       .order('last_active', { ascending: false })
       .limit(40);
@@ -161,6 +163,9 @@ export default function DashboardPage() {
         fetchData();
         toast('새로운 쪽지가 도착했습니다! 📩');
       })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'announcements' }, (payload) => {
+        setAnnouncementPopup(payload.new);
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); }
@@ -173,25 +178,60 @@ export default function DashboardPage() {
 
   // 기존 핸들러들 (SOS, Interaction 등) 유지 및 보완...
   const handleSOS = async (msg: string) => {
-    const { error } = await supabase.from('announcements').insert({
-      party_id: myProfile.party_id,
-      content: `🚨 SOS (${myProfile.nickname}): ${msg}`,
-      type: 'emergency'
+    if (!myProfile || !participant?.id) return;
+    const { error } = await supabase.from('alerts').insert({
+      participant_id: participant.id,
+      type: 'SOS',
+      message: `🚨 SOS (${myProfile.nickname}): ${msg}`,
+      resolved: false
     });
-    if (!error) toast.success('SOS 요청 완료!');
+    if (!error) toast.success('관리자에게 SOS 요청이 전송되었습니다!');
     setIsSosOpen(false);
   };
 
   const handleMusicRequest = async (song: string) => {
-    if (!song.trim()) return;
-    const { error } = await supabase.from('interactions').insert({
-      sender_id: myProfile.id,
-      party_id: myProfile.party_id,
-      type: 'music_request',
-      content: song
+    if (!song.trim() || !participant?.id) return;
+    const { error } = await supabase.from('alerts').insert({
+      participant_id: participant.id,
+      type: 'MUSIC',
+      message: `🎵 노래신청 (${myProfile?.nickname}): ${song}`,
+      resolved: false
     });
     if (!error) toast.success('노래 신청이 접수되었습니다! 🎵');
     setIsMusicOpen(false);
+  };
+
+  const fetchNicknameHistory = async () => {
+    if (!participant?.id) return;
+    const { data } = await supabase
+      .from('nickname_history')
+      .select('*')
+      .eq('participant_id', participant.id)
+      .order('created_at', { ascending: false });
+    setNicknameHistory(data || []);
+  };
+
+  const handleNicknameUpdate = async () => {
+    if (!participant?.id || !newNickname.trim() || newNickname === myProfile?.nickname) return;
+
+    const oldNickname = myProfile?.nickname;
+    const result = await updateNickname(participant.id, newNickname.trim());
+
+    if (result.success) {
+      if (result.historyWritten !== false) {
+        await supabase.from('nickname_history').insert({
+          participant_id: participant.id,
+          old_nickname: oldNickname,
+          new_nickname: newNickname.trim()
+        });
+      }
+      setParticipant({ ...participant, nickname: newNickname.trim() });
+      toast.success('닉네임이 변경되었습니다.');
+      setIsNicknameDialogOpen(false);
+      fetchData();
+    } else {
+      toast.error(result.error || '닉네임 변경 실패');
+    }
   };
 
   const formatTime = (isoString?: string) => {
@@ -207,8 +247,8 @@ export default function DashboardPage() {
       <div className="w-full max-w-md mx-auto space-y-8 pt-8">
         {/* 상단: 프로필 & 타이머 */}
         <div className="flex flex-col gap-4">
-          <div className="flex justify-between items-start">
-            <div>
+          <div className="flex justify-between items-start gap-3">
+            <div className="flex-1 min-w-0">
               <h1 className="text-4xl font-black tracking-tighter">DASHBOARD</h1>
               <div className="mt-1 flex flex-col gap-1">
                 <p className="text-emerald-400 text-sm font-bold tracking-widest">{partyInfo?.name}</p>
@@ -217,11 +257,32 @@ export default function DashboardPage() {
                     {formatTime(partyInfo?.start_at)} ~ {formatTime(partyInfo?.end_at)}
                   </p>
                 )}
-                <p className="text-indigo-400 text-xs font-bold uppercase tracking-widest mt-1">👤 {myProfile?.nickname}</p>
               </div>
             </div>
-            {partyInfo?.end_at && <CountdownTimer targetDate={partyInfo.end_at} />}
+            <div className="flex items-center gap-2 shrink-0">
+              {partyInfo?.end_at && <CountdownTimer targetDate={partyInfo.end_at} />}
+            </div>
           </div>
+
+          <button
+            onClick={() => {
+              setNewNickname(myProfile?.nickname || '');
+              fetchNicknameHistory();
+              setIsNicknameDialogOpen(true);
+            }}
+            className="flex items-center gap-3 glass px-4 py-3 rounded-2xl w-full hover:bg-white/10 active:scale-[0.98] transition-all"
+          >
+            <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-lg shrink-0">
+              {myProfile?.nickname?.[0] || '?'}
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-lg font-bold truncate">{myProfile?.nickname || '닉네임 없음'}</p>
+              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">
+                수정 가능 {3 - (myProfile?.nickname_change_count || 0)}회 남음
+              </p>
+            </div>
+            <Edit2 className="w-4 h-4 text-zinc-500 shrink-0" />
+          </button>
         </div>
 
         {/* 스탯 카드 */}
@@ -271,30 +332,32 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 하단 탭 바 (3등분 균일화 및 글래스모피즘 테마) */}
-      <div className="fixed bottom-8 left-0 right-0 flex justify-center gap-3 px-6 max-w-md mx-auto z-40">
-        <Button 
-          className="flex-1 rounded-2xl btn-glass-sos h-14 font-bold flex flex-col gap-1 items-center justify-center p-0" 
-          onClick={() => setIsSosOpen(true)}
-        >
-          <AlertTriangle className="w-5 h-5" />
-          <span className="text-[10px] tracking-widest uppercase">SOS</span>
-        </Button>
-        
-        <Button 
-          className="flex-1 rounded-2xl btn-glass-music h-14 font-bold flex flex-col gap-1 items-center justify-center p-0" 
-          onClick={() => setIsMusicOpen(true)}
-        >
-          <Music className="w-5 h-5" />
-          <span className="text-[10px] tracking-widest uppercase">MUSIC</span>
-        </Button>
-
-        <Link href="/ranking" className="flex-1">
-          <Button className="w-full rounded-2xl btn-glass-rank h-14 font-bold flex flex-col gap-1 items-center justify-center p-0">
-            <Trophy className="w-5 h-5" />
-            <span className="text-[10px] tracking-widest uppercase">RANK</span>
+      {/* 하단 탭 바 - 랭킹 페이지 나의순위 스타일 적용 */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-zinc-950/80 backdrop-blur-xl border-t border-white/10 z-40">
+        <div className="max-w-md mx-auto flex justify-center gap-3">
+          <Button 
+            className="flex-1 rounded-2xl btn-glass-sos h-14 font-bold flex flex-col gap-1 items-center justify-center p-0" 
+            onClick={() => setIsSosOpen(true)}
+          >
+            <AlertTriangle className="w-5 h-5" />
+            <span className="text-[10px] tracking-widest uppercase">SOS</span>
           </Button>
-        </Link>
+          
+          <Button 
+            className="flex-1 rounded-2xl btn-glass-music h-14 font-bold flex flex-col gap-1 items-center justify-center p-0" 
+            onClick={() => setIsMusicOpen(true)}
+          >
+            <Music className="w-5 h-5" />
+            <span className="text-[10px] tracking-widest uppercase">MUSIC</span>
+          </Button>
+
+          <Link href="/ranking" className="flex-1">
+            <Button className="w-full rounded-2xl btn-glass-rank h-14 font-bold flex flex-col gap-1 items-center justify-center p-0">
+              <Trophy className="w-5 h-5" />
+              <span className="text-[10px] tracking-widest uppercase">RANK</span>
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* SOS 다이얼로그 */}
@@ -320,6 +383,87 @@ export default function DashboardPage() {
             const song = (document.getElementById('music-input') as HTMLInputElement).value;
             handleMusicRequest(song);
           }} className="w-full btn-glass-music font-bold h-14 rounded-2xl text-lg">신청하기</Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* 닉네임 수정 다이얼로그 */}
+      <Dialog open={isNicknameDialogOpen} onOpenChange={setIsNicknameDialogOpen}>
+        <DialogContent className="glass border-white/10 max-w-[90%] rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black text-indigo-400 flex items-center gap-2">
+              <Edit2 className="w-6 h-6" /> 닉네임 수정
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mb-2">
+                남은 변경 횟수: {3 - (myProfile?.nickname_change_count || 0)} / 3
+              </p>
+              <Input
+                value={newNickname}
+                onChange={(e) => setNewNickname(e.target.value)}
+                placeholder="새 닉네임 입력"
+                maxLength={12}
+                className="bg-white/5 border-white/10 text-white h-14 rounded-xl text-lg"
+              />
+            </div>
+            <Button
+              onClick={handleNicknameUpdate}
+              disabled={
+                !newNickname.trim() ||
+                newNickname === myProfile?.nickname ||
+                (myProfile?.nickname_change_count || 0) >= 3
+              }
+              className="w-full bg-indigo-600 hover:bg-indigo-700 font-bold h-14 rounded-2xl text-lg"
+            >
+              변경하기
+            </Button>
+
+            {nicknameHistory.length > 0 && (
+              <div className="pt-4 border-t border-white/10">
+                <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mb-3">변경 이력</p>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {nicknameHistory.map((h) => (
+                    <div key={h.id} className="flex items-center gap-2 text-sm p-2 rounded-lg bg-white/5">
+                      <span className="text-zinc-500 line-through">{h.old_nickname}</span>
+                      <span className="text-zinc-600">→</span>
+                      <span className="text-indigo-400 font-bold">{h.new_nickname}</span>
+                      <span className="ml-auto text-[10px] text-zinc-600">
+                        {new Date(h.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 공지사항 팝업 */}
+      <Dialog open={!!announcementPopup} onOpenChange={() => setAnnouncementPopup(null)}>
+        <DialogContent className="glass border-white/10 max-w-[90%] rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black flex items-center gap-2">
+              {announcementPopup?.type === 'emergency' ? (
+                <><AlertTriangle className="w-6 h-6 text-rose-500" /> 긴급 공지</>
+              ) : (
+                <><MessageCircle className="w-6 h-6 text-indigo-400" /> 공지사항</>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-lg leading-relaxed font-medium">{announcementPopup?.content}</p>
+            <p className="text-xs text-zinc-500 mt-4">
+              {announcementPopup?.created_at && new Date(announcementPopup.created_at).toLocaleString('ko-KR')}
+            </p>
+          </div>
+          <Button
+            onClick={() => setAnnouncementPopup(null)}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 font-bold h-14 rounded-2xl text-lg"
+          >
+            확인
+          </Button>
         </DialogContent>
       </Dialog>
     </div>

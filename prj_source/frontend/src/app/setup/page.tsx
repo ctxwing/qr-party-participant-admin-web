@@ -18,7 +18,27 @@ export default function SetupPage() {
   const { participant, setParticipant } = useStore()
   const [nickname, setNickname] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [partyName, setPartyName] = useState('')
   const supabase = createClient()
+
+  useEffect(() => {
+    const fetchActiveParty = async () => {
+      const today = new Date().toISOString()
+      const { data } = await supabase
+        .from('parties')
+        .select('name')
+        .eq('status', 'active')
+        .lte('start_at', today)
+        .gte('end_at', today)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (data?.name) {
+        setPartyName(data.name)
+      }
+    }
+    fetchActiveParty()
+  }, [supabase])
 
   useEffect(() => {
     if (!authLoading && participant?.nickname) {
@@ -112,13 +132,16 @@ export default function SetupPage() {
             <PartyPopper className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-4xl font-black tracking-tight text-white leading-tight">
-            파티에 오신 것을<br />환영합니다!
+            {partyName ? (
+              <>{partyName} 파티에<br />오신 것을 환영합니다!</>
+            ) : (
+              <>파티에 오신 것을<br />환영합니다!</>
+            )}
           </h1>
           <p className="text-white/60 font-medium">현장에서 사용하실 닉네임을 설정해주세요.</p>
         </div>
 
         <Card className="glass border-none shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-vibrant-gradient" />
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-white">
               <User className="w-5 h-5 text-primary" />

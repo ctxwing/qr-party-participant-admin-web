@@ -6,22 +6,31 @@ export async function updateNickname(participantId: string, newNickname: string)
   try {
     const supabase = await createClient()
 
-    // 1. 현재 참여자 정보 조회 (변경 횟수 확인)
     const { data: participant, error: fetchError } = await supabase
       .from('participants')
-      .select('nickname_change_count')
+      .select('nickname, nickname_change_count')
       .eq('id', participantId)
       .single()
 
-    if (fetchError) throw fetchError
-    
+    if (fetchError) {
+      console.error('fetchError:', fetchError)
+      return { success: false, error: '참여자 정보 조회 실패' }
+    }
+
+    if (!participant) {
+      return { success: false, error: '참여자를 찾을 수 없습니다.' }
+    }
+
     const currentCount = participant.nickname_change_count || 0
 
     if (currentCount >= 3) {
       return { success: false, error: '닉네임 변경 횟수(3회)를 모두 소진하였습니다.' }
     }
 
-    // 2. 닉네임 업데이트 및 횟수 증가
+    if (newNickname === participant.nickname) {
+      return { success: false, error: '현재 닉네임과 동일합니다.' }
+    }
+
     const { error: updateError } = await supabase
       .from('participants')
       .update({
@@ -31,11 +40,26 @@ export async function updateNickname(participantId: string, newNickname: string)
       })
       .eq('id', participantId)
 
-    if (updateError) throw updateError
+    if (updateError) {
+      console.error('updateError:', updateError)
+      return { success: false, error: '닉네임 업데이트 실패: ' + updateError.message }
+    }
+
+    const { error: historyError } = await supabase
+      .from('nickname_history')
+      .insert({
+        participant_id: participantId,
+        old_nickname: participant.nickname,
+        new_nickname: newNickname
+      })
+
+    if (historyError) {
+      console.error('historyError:', historyError)
+    }
 
     return { success: true, newCount: currentCount + 1 }
   } catch (error: any) {
-    console.error('닉네임 변경 에러:', error)
+    console.error('updateNickname error:', error)
     return { success: false, error: error.message || '닉네임 변경에 실패했습니다.' }
   }
 }

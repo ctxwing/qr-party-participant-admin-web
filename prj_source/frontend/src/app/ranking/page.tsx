@@ -98,7 +98,7 @@ export default function RankingPage() {
             <ChevronLeft className="w-6 h-6" />
           </Button>
           <div>
-            <h1 className="text-3xl font-black tracking-tighter uppercase">Hall of Fame</h1>
+            <h1 className="text-3xl font-black tracking-tighter uppercase">Hall &nbsp;of &nbsp; Fame</h1>
             <div className="mt-1 flex flex-col gap-0.5">
               <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Real-time Popularity Ranking</p>
               {partyInfo && (

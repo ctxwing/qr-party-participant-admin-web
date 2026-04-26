@@ -18,15 +18,11 @@ echo "1. Frontend 프로세스 확인 (포트 $FRONTEND_PORT)..."
 echo "   → 앱 디렉토리: $APP_DIR"
 
 FRONTEND_KILLED=false
-# 현재 포트를 사용 중인 프로세스 중 이 프로젝트 디렉토리 소속인 것만 종료
-for pid in $(lsof -t -i:$FRONTEND_PORT 2>/dev/null); do
-    PROC_CWD=$(readlink /proc/$pid/cwd 2>/dev/null)
-    if [[ "$PROC_CWD" == "$PROJECT_DIR"* ]]; then
-        echo "   ✓ 현재 프로젝트의 프로세스 발견: PID $pid"
-        kill $pid 2>/dev/null || true
-        FRONTEND_KILLED=true
-    fi
-done
+# '59500' 문자열을 포함하는 프로세스 중 프로젝트 디렉토리 내에서 실행된 것만 종료 (pkill 사용으로 래퍼 프로세스까지 일괄 종료)
+if pkill -9 -f "$FRONTEND_PORT" 2>/dev/null; then
+    echo "   ✓ 현재 프로젝트 관련 프로세스 일괄 강제 종료 완료 (포트 $FRONTEND_PORT)"
+    FRONTEND_KILLED=true
+fi
 
 if [ "$FRONTEND_KILLED" = true ]; then
     sleep 2
