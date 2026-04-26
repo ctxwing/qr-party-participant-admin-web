@@ -1,15 +1,28 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { ChevronLeft, Award, Heart, MessageSquare, Star, Trophy, Crown, Medal } from 'lucide-react'
+import { ChevronLeft, Heart, MessageSquare, Trophy, Crown, Medal } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { useStore } from '@/store/useStore'
+
+interface RankingItem {
+  id: string
+  nickname: string | null
+  score: number
+  lCount: number
+  mCount: number
+  cCount: number
+}
+
+interface PartyInfo {
+  name: string
+  start_at: string | null
+  end_at: string | null
+  [key: string]: unknown
+}
 
 const CupidIcon = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -24,18 +37,15 @@ const CupidIcon = ({ className }: { className?: string }) => (
 export default function RankingPage() {
   const router = useRouter()
   const { participant } = useStore()
-  const [items, setItems] = useState<any[]>([])
+  const [items, setItems] = useState<RankingItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [currentWeights, setCurrentWeights] = useState<any>({ like: 1, message: 5, cupid: 10 })
-  const [selectedParticipant, setSelectedParticipant] = useState<any>(null)
-  const [partyInfo, setPartyInfo] = useState<any>(null)
+  const [partyInfo, setPartyInfo] = useState<PartyInfo | null>(null)
   const supabase = createClient()
 
-  const fetchRankings = async () => {
+  const fetchRankings = useCallback(async () => {
     try {
       const { data: settings } = await supabase.from('system_settings').select('value').eq('key', 'ranking_weights').maybeSingle()
-      const weights = settings?.value || { like: 1, message: 5, cupid: 10 }
-      setCurrentWeights(weights)
+      const weights: { like: number; message: number; cupid: number } = settings?.value || { like: 1, message: 5, cupid: 10 }
 
       if (participant?.id) {
         const { data: me } = await supabase.from('participants').select('party_id').eq('id', participant.id).single()
@@ -51,7 +61,7 @@ export default function RankingPage() {
 
       if (!participantsList) return
 
-      const rankings = participantsList.map(p => {
+      const rankings: RankingItem[] = participantsList.map(p => {
         const lCount = interactions?.filter(i => i.receiver_id === p.id && i.type === 'heart').length || 0
         const cCount = interactions?.filter(i => i.receiver_id === p.id && i.type === 'cupid').length || 0
         const mCount = messages?.filter(m => m.receiver_id === p.id).length || 0
@@ -69,23 +79,23 @@ export default function RankingPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [participant, supabase])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Supabase Realtime 구독 패턴: 최초 로드 후 실시간 업데이트 수신
     fetchRankings()
     const channel = supabase.channel('ranking-updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'interactions' }, fetchRankings)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, fetchRankings)
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [])
+  }, [fetchRankings, supabase])
 
-  // 내 순위 정보 추출
   const myRank = useMemo(() => {
     if (!participant?.id) return null;
     const index = items.findIndex(item => item.id === participant.id);
     return index !== -1 ? { ...items[index], rank: index + 1 } : null;
-  }, [items, participant?.id]);
+  }, [items, participant]);
 
   if (loading) return <div className="min-h-screen bg-zinc-950 flex items-center justify-center font-bold text-white">데이터 집계 중...</div>
 
@@ -174,7 +184,6 @@ export default function RankingPage() {
                     ? "bg-indigo-600/20 border-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.2)] ring-1 ring-indigo-500/50" 
                     : "bg-white/5 border-white/5 hover:bg-white/10"
                 }`}
-                onClick={() => setSelectedParticipant({ ...p, rank: idx + 1 })}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -232,8 +241,6 @@ export default function RankingPage() {
           </div>
         </div>
       )}
-
-      {/* 상세 팝업 생략 (기존 것 유지) */}
     </div>
   );
 }

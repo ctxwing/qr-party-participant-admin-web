@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useStore } from '@/store/useStore'
 import { useRealtime } from '@/hooks/useRealtime'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -12,22 +12,20 @@ import {
   MessageCircle, 
   Heart, 
   Zap, 
-  Award, 
   AlertTriangle, 
   Edit2, 
   Clock, 
   Inbox,
-  CheckCircle2,
-  XCircle,
   Music,
-  Trophy
+  Trophy,
+  Menu
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
-import { checkRateLimit } from '@/lib/rateLimit'
 import { createClient } from '@/lib/supabase'
 import { updateNickname } from '@/app/actions/nickname'
 import Link from 'next/link'
+import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar'
 
 // --- 컴포넌트: 카운트다운 타이머 (T025) ---
 function CountdownTimer({ targetDate }: { targetDate: string | Date }) {
@@ -63,7 +61,14 @@ function CountdownTimer({ targetDate }: { targetDate: string | Date }) {
 }
 
 // --- 컴포넌트: 쪽지 보관함 (T025) ---
-function MessageInbox({ messages, onRead }: { messages: any[], onRead: (id: string) => void }) {
+interface MessageItem {
+  id: string
+  content: string
+  is_read: number
+  created_at: string
+}
+
+function MessageInbox({ messages, onRead }: { messages: MessageItem[], onRead: (id: string) => void }) {
   return (
     <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
       {messages.length === 0 ? (
@@ -96,32 +101,82 @@ function MessageInbox({ messages, onRead }: { messages: any[], onRead: (id: stri
 }
 
 // --- 메인 페이지 ---
+interface ParticipantInfo {
+  id: string
+  nickname: string | null
+  last_active: string | null
+}
+
+interface MyProfile {
+  id: string
+  nickname: string
+  nickname_change_count: number
+  party_id: string
+  [key: string]: unknown
+}
+
+interface PartyInfo {
+  name: string
+  start_at: string | null
+  end_at: string | null
+  [key: string]: unknown
+}
+
+interface InteractionLimits {
+  hearts: number
+  cupids: number
+  messages: number
+}
+
+interface NicknameHistoryItem {
+  id: string
+  old_nickname: string | null
+  new_nickname: string
+  created_at: string
+}
+
+interface AnnouncementData {
+  content: string
+  type: string
+  created_at: string
+}
+
 export default function DashboardPage() {
   const { participant, setParticipant } = useStore()
   useRealtime(participant?.id)
   
-  const [participants, setParticipants] = useState<any[]>([])
+  const [participants, setParticipants] = useState<ParticipantInfo[]>([])
   const [stats, setStats] = useState({ messages: 0, cupid: 0, likes: 0 })
-  const [myMessages, setMyMessages] = useState<any[]>([])
-  const [myProfile, setMyProfile] = useState<any>(null);
-  const [partyInfo, setPartyInfo] = useState<any>(null);
+  const [sentStats, setSentStats] = useState({ hearts: 0, cupids: 0, messages: 0 })
+  const [interactionLimits, setInteractionLimits] = useState<InteractionLimits>({ hearts: 3, cupids: 2, messages: 20 })
+  const [myMessages, setMyMessages] = useState<MessageItem[]>([])
+  const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
+  const [partyInfo, setPartyInfo] = useState<PartyInfo | null>(null);
   
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = useState(false);
   const [newNickname, setNewNickname] = useState('');
-  const [nicknameHistory, setNicknameHistory] = useState<any[]>([]);
+  const [nicknameHistory, setNicknameHistory] = useState<NicknameHistoryItem[]>([]);
   const [isSosOpen, setIsSosOpen] = useState(false);
   const [isMusicOpen, setIsMusicOpen] = useState(false);
-  const [activeAnnouncement, setActiveAnnouncement] = useState<any>(null);
   const [totalParticipants, setTotalParticipants] = useState<number>(0);
-  const [announcementPopup, setAnnouncementPopup] = useState<any>(null);
-  
+  const [announcementPopup, setAnnouncementPopup] = useState<AnnouncementData | null>(null);
+  const [selectedTarget, setSelectedTarget] = useState<{ id: string; nickname: string } | null>(null);
+  const [isInteractionOpen, setIsInteractionOpen] = useState(false);
+  const [messageContent, setMessageContent] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const supabase = createClient()
 
   const fetchData = useCallback(async () => {
     if (!participant?.id) return;
 
-    // 1. 내 프로필 및 참여자 목록
+    // 1. 시스템 설정 (interaction limits)
+    const { data: limitsData } = await supabase.from('system_settings').select('value').eq('key', 'interaction_limits').maybeSingle();
+    if (limitsData?.value) {
+      setInteractionLimits(limitsData.value);
+    }
+
+    // 2. 내 프로필 및 참여자 목록
     const { data: me } = await supabase.from('participants').select('*').eq('id', participant.id).single();
     if (me) {
       setMyProfile(me);
@@ -137,14 +192,14 @@ export default function DashboardPage() {
       .neq('id', participant.id)
       .order('last_active', { ascending: false })
       .limit(40);
-      
+
     setParticipants(others || []);
     setTotalParticipants((count || 0) + 1); // 본인 포함 총 인원
 
-    // 2. 스탯 및 쪽지 보관함
+    // 3. 스탯 및 쪽지 보관함
     const { data: msgs } = await supabase.from('messages').select('*').eq('receiver_id', participant.id).order('created_at', { ascending: false });
     setMyMessages(msgs || []);
-    
+
     const { count: cCount } = await supabase.from('interactions').select('*', { count: 'exact', head: true }).eq('receiver_id', participant.id).eq('type', 'heart');
     const { count: lCount } = await supabase.from('interactions').select('*', { count: 'exact', head: true }).eq('receiver_id', participant.id).eq('type', 'cupid');
 
@@ -153,23 +208,35 @@ export default function DashboardPage() {
       cupid: cCount || 0,
       likes: lCount || 0
     });
-  }, [participant?.id, supabase]);
+
+    const { count: sentHearts } = await supabase.from('interactions').select('*', { count: 'exact', head: true }).eq('sender_id', participant.id).eq('type', 'heart');
+    const { count: sentCupids } = await supabase.from('interactions').select('*', { count: 'exact', head: true }).eq('sender_id', participant.id).eq('type', 'cupid');
+    const { count: sentMsgs } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('sender_id', participant.id);
+
+    setSentStats({ hearts: sentHearts || 0, cupids: sentCupids || 0, messages: sentMsgs || 0 });
+  }, [participant, supabase]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Supabase Realtime 구독 패턴: 최초 로드 후 실시간 업데이트 수신
     fetchData();
     const channel = supabase.channel('dashboard-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, fetchData)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${participant?.id}` }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
         fetchData();
-        toast('새로운 쪽지가 도착했습니다! 📩');
+        if (payload.eventType === 'INSERT' && (payload.new as { receiver_id: string }).receiver_id === participant?.id) {
+          toast('새로운 쪽지가 도착했습니다! 📩');
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'interactions' }, () => {
+        fetchData();
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'announcements' }, (payload) => {
-        setAnnouncementPopup(payload.new);
+        setAnnouncementPopup(payload.new as AnnouncementData);
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); }
-  }, [participant?.id, fetchData]);
+  }, [participant?.id, fetchData, supabase]);
 
   const handleReadMessage = async (msgId: string) => {
     await fetch(`/api/messages/${msgId}/read`, { method: 'PATCH' });
@@ -214,17 +281,9 @@ export default function DashboardPage() {
   const handleNicknameUpdate = async () => {
     if (!participant?.id || !newNickname.trim() || newNickname === myProfile?.nickname) return;
 
-    const oldNickname = myProfile?.nickname;
     const result = await updateNickname(participant.id, newNickname.trim());
 
     if (result.success) {
-      if (result.historyWritten !== false) {
-        await supabase.from('nickname_history').insert({
-          participant_id: participant.id,
-          old_nickname: oldNickname,
-          new_nickname: newNickname.trim()
-        });
-      }
       setParticipant({ ...participant, nickname: newNickname.trim() });
       toast.success('닉네임이 변경되었습니다.');
       setIsNicknameDialogOpen(false);
@@ -234,10 +293,80 @@ export default function DashboardPage() {
     }
   };
 
-  const formatTime = (isoString?: string) => {
+  const formatTime = (isoString?: string | null) => {
     if (!isoString) return '';
     const d = new Date(isoString);
     return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleSendHeart = async () => {
+    if (!selectedTarget || !myProfile) return;
+    if (sentStats.hearts >= interactionLimits.hearts) {
+      toast.error('호감 발송 한도를 초과했습니다.');
+      return;
+    }
+    const { error } = await supabase.from('interactions').insert({
+      sender_id: myProfile.id,
+      receiver_id: selectedTarget.id,
+      party_id: myProfile.party_id,
+      type: 'heart'
+    });
+    if (!error) {
+      toast.success(`${selectedTarget.nickname}님에게 호감을 보냈습니다! 💕`);
+    } else {
+      toast.error('이미 호감을 보냈거나 전송에 실패했습니다.');
+    }
+    setIsInteractionOpen(false);
+    setSelectedTarget(null);
+  };
+
+  const handleSendCupid = async () => {
+    if (!selectedTarget || !myProfile) return;
+    if (sentStats.cupids >= interactionLimits.cupids) {
+      toast.error('큐피트 발송 한도를 초과했습니다.');
+      return;
+    }
+    const { error } = await supabase.from('interactions').insert({
+      sender_id: myProfile.id,
+      receiver_id: selectedTarget.id,
+      party_id: myProfile.party_id,
+      type: 'cupid'
+    });
+    if (!error) {
+      toast.success(`${selectedTarget.nickname}님에게 큐피트를 보냈습니다! 💘`);
+    } else {
+      toast.error('이미 큐피트를 보냈거나 전송에 실패했습니다.');
+    }
+    setIsInteractionOpen(false);
+    setSelectedTarget(null);
+  };
+
+  const handleSendMessage = async () => {
+    if (!selectedTarget || !myProfile || !messageContent.trim()) return;
+    if (sentStats.messages >= interactionLimits.messages) {
+      toast.error('쪽지 발송 한도를 초과했습니다.');
+      return;
+    }
+    const { error } = await supabase.from('messages').insert({
+      sender_id: myProfile.id,
+      receiver_id: selectedTarget.id,
+      party_id: myProfile.party_id,
+      content: messageContent.trim()
+    });
+    if (!error) {
+      toast.success(`${selectedTarget.nickname}님에게 쪽지를 보냈습니다! 📩`);
+      setMessageContent('');
+    } else {
+      toast.error('쪽지 전송에 실패했습니다.');
+    }
+    setIsInteractionOpen(false);
+    setSelectedTarget(null);
+  };
+
+  const openInteraction = (p: { id: string; nickname: string }) => {
+    setSelectedTarget(p);
+    setMessageContent('');
+    setIsInteractionOpen(true);
   };
 
   return (
@@ -261,6 +390,9 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {partyInfo?.end_at && <CountdownTimer targetDate={partyInfo.end_at} />}
+              <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="rounded-full hover:bg-white/10 h-10 w-10">
+                <Menu className="w-5 h-5" />
+              </Button>
             </div>
           </div>
 
@@ -293,6 +425,7 @@ export default function DashboardPage() {
                 <MessageCircle className="w-6 h-6 mx-auto mb-2 text-indigo-400" />
                 <p className="text-lg font-bold">{stats.messages}</p>
                 <p className="text-[9px] uppercase opacity-40">Inbox</p>
+                <p className="text-[8px] text-indigo-400/60 mt-1">발송가능 {Math.max(0, interactionLimits.messages - sentStats.messages)}회</p>
               </Card>
             </DialogTrigger>
             <DialogContent className="glass border-none max-w-[90%] rounded-3xl">
@@ -304,11 +437,13 @@ export default function DashboardPage() {
             <Heart className="w-6 h-6 mx-auto mb-2 text-rose-500" />
             <p className="text-lg font-bold">{stats.likes}</p>
             <p className="text-[9px] uppercase opacity-40">Hearts</p>
+            <p className="text-[8px] text-rose-400/60 mt-1">발송가능 {Math.max(0, interactionLimits.hearts - sentStats.hearts)}회</p>
           </Card>
           <Card className="glass border-none text-center p-4">
             <Zap className="w-6 h-6 mx-auto mb-2 text-amber-500" />
             <p className="text-lg font-bold">{stats.cupid}</p>
             <p className="text-[9px] uppercase opacity-40">Cupids</p>
+            <p className="text-[8px] text-amber-400/60 mt-1">발송가능 {Math.max(0, interactionLimits.cupids - sentStats.cupids)}회</p>
           </Card>
         </div>
 
@@ -323,8 +458,9 @@ export default function DashboardPage() {
           </h2>
           <div className="grid grid-cols-2 gap-3">
             {participants.map(p => (
-              <div key={p.id} className="glass p-4 rounded-2xl flex flex-col items-center gap-2 hover:bg-white/10 transition-all cursor-pointer">
-                <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-xl">{p.nickname[0]}</div>
+              <div key={p.id} className="glass p-4 rounded-2xl flex flex-col items-center gap-2 hover:bg-white/10 transition-all cursor-pointer"
+                onClick={() => openInteraction({ id: p.id, nickname: p.nickname || '?' })}>
+                <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-xl">{p.nickname?.[0] || '?'}</div>
                 <span className="text-sm font-bold">{p.nickname}</span>
               </div>
             ))}
@@ -440,6 +576,55 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
+      {/* 참여자 상호작용 다이얼로그 */}
+      <Dialog open={isInteractionOpen} onOpenChange={setIsInteractionOpen}>
+        <DialogContent className="glass border-white/10 max-w-[90%] rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black text-white flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-sm">
+                {selectedTarget?.nickname?.[0] || '?'}
+              </div>
+              {selectedTarget?.nickname}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                onClick={handleSendHeart}
+                className="h-20 flex flex-col gap-1 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-400 hover:bg-rose-500/30 transition-all"
+              >
+                <Heart className="w-6 h-6" />
+                <span className="text-xs font-bold">호감 보내기</span>
+              </Button>
+              <Button
+                onClick={handleSendCupid}
+                className="h-20 flex flex-col gap-1 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:bg-amber-500/30 transition-all"
+              >
+                <Zap className="w-6 h-6" />
+                <span className="text-xs font-bold">큐피트 보내기</span>
+              </Button>
+            </div>
+            <div className="space-y-3">
+              <Textarea
+                value={messageContent}
+                onChange={(e) => setMessageContent(e.target.value)}
+                placeholder="익명 쪽지를 작성하세요..."
+                className="bg-white/5 border-white/10 text-white rounded-xl resize-none h-24"
+                maxLength={200}
+              />
+              <Button
+                onClick={handleSendMessage}
+                disabled={!messageContent.trim()}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 font-bold h-12 rounded-2xl text-base"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                쪽지 보내기
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* 공지사항 팝업 */}
       <Dialog open={!!announcementPopup} onOpenChange={() => setAnnouncementPopup(null)}>
         <DialogContent className="glass border-white/10 max-w-[90%] rounded-3xl p-6">
@@ -466,6 +651,15 @@ export default function DashboardPage() {
           </Button>
         </DialogContent>
       </Dialog>
+
+      {/* 우측 사이드바 */}
+      {participant?.id && (
+        <DashboardSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          participantId={participant.id}
+        />
+      )}
     </div>
   )
 }

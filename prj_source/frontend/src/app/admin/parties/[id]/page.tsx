@@ -155,12 +155,10 @@ export default function PartyDetailPage() {
         const variants: any = { pending: "secondary", approved: "default", rejected: "destructive", banned: "outline" };
         return (
           <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="p-0 h-auto">
+            <DialogTrigger render={<Button variant="ghost" size="sm" className="p-0 h-auto" />}>
                 <Badge variant={variants[p.value] || "outline"} className="cursor-pointer hover:opacity-80">
                   {p.value}
                 </Badge>
-              </Button>
             </DialogTrigger>
             <DialogContent className="bg-zinc-900 border-white/10 text-white">
               <DialogHeader>
