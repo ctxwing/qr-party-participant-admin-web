@@ -69,11 +69,11 @@ export function useAdminData(adminUserId?: string) {
 
   const handleToggleResolve = useCallback(async (id: string, current: boolean) => {
     if (!id) return
-    console.log('UPDATE 시작:', id, 'resolved:', !current)
-
-    // 현재 사용자 확인
-    const { data: { user } } = await supabase.auth.getUser()
-    console.log('현재 사용자:', user?.id, 'Role:', user?.role)
+    if (!adminUserId) {
+      toast.error('Admin user ID가 설정되지 않았습니다.')
+      return
+    }
+    console.log('UPDATE 시작:', id, 'resolved:', !current, 'adminUserId:', adminUserId)
 
     const { data, error } = await supabase.from('alerts').update({ resolved: !current }).eq('id', id).select('*')
     console.log('UPDATE 응답:', data, error)
@@ -83,7 +83,7 @@ export function useAdminData(adminUserId?: string) {
       toast.success(current ? '미해결 상태로 변경' : '해결 완료 처리')
       await fetchAlerts()
     }
-  }, [fetchAlerts, supabase])
+  }, [fetchAlerts, supabase, adminUserId])
 
   const handleUpdateCount = useCallback(async (id: string, field: string, value: number) => {
     const { error } = await supabase.from('participants').update({ [field]: value }).eq('id', id)

@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession, signOut } from '@/lib/auth-client'
+import { setAdminUserId } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
@@ -45,6 +46,13 @@ export default function AdminPage() {
 
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const { data: session } = useSession()
+
+  useEffect(() => {
+    // Admin user ID를 Supabase 클라이언트에 설정 (RLS 정책 통과용)
+    if (session?.user?.id) {
+      setAdminUserId(session.user.id)
+    }
+  }, [session?.user?.id])
 
   const {
     sessionStatus, handleToggleSession,
