@@ -95,12 +95,18 @@ export function useAdminData(adminUserId?: string) {
       )
 
       const data = await response.json()
-      console.log('UPDATE 응답:', data, 'Status:', response.status)
+      console.log('📋 UPDATE 응답:', {
+        status: response.status,
+        statusText: response.statusText,
+        data,
+        headers: Object.fromEntries(response.headers.entries()),
+      })
 
       if (!response.ok) {
-        console.error('UPDATE 실패:', response.statusText)
-        toast.error('상태 변경 실패: ' + response.statusText)
+        console.error('❌ UPDATE 실패 - Status:', response.status, 'Text:', response.statusText, 'Data:', data)
+        toast.error(`상태 변경 실패 [${response.status}]: ${response.statusText || JSON.stringify(data)}`)
       } else {
+        console.log('✅ UPDATE 성공')
         toast.success(current ? '미해결 상태로 변경' : '해결 완료 처리')
         await fetchAlerts()
       }
