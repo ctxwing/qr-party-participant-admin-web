@@ -75,15 +75,40 @@ export function useAdminData(adminUserId?: string) {
     }
     console.log('UPDATE 시작:', id, 'resolved:', !current, 'adminUserId:', adminUserId)
 
-    const { data, error } = await supabase.from('alerts').update({ resolved: !current }).eq('id', id).select('*')
-    console.log('UPDATE 응답:', data, error)
-    if (error) {
-      toast.error('상태 변경 실패: ' + (error.message || '로그 확인'))
-    } else {
-      toast.success(current ? '미해결 상태로 변경' : '해결 완료 처리')
-      await fetchAlerts()
+    try {
+      // REST API로 직접 호출 (headers 포함)
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/alerts?id=eq.${id}&select=*`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${anonKey}`,
+            'x-admin-user-id': adminUserId,
+            'Prefer': 'return=representation',
+          },
+          body: JSON.stringify({ resolved: !current }),
+        }
+      )
+
+      const data = await response.json()
+      console.log('UPDATE 응답:', data, 'Status:', response.status)
+
+      if (!response.ok) {
+        console.error('UPDATE 실패:', response.statusText)
+        toast.error('상태 변경 실패: ' + response.statusText)
+      } else {
+        toast.success(current ? '미해결 상태로 변경' : '해결 완료 처리')
+        await fetchAlerts()
+      }
+    } catch (err: any) {
+      console.error('UPDATE 에러:', err.message)
+      toast.error('상태 변경 실패: ' + (err.message || '알 수 없는 오류'))
     }
-  }, [fetchAlerts, supabase, adminUserId])
+  }, [fetchAlerts, adminUserId])
 
   const handleUpdateCount = useCallback(async (id: string, field: string, value: number) => {
     const { error } = await supabase.from('participants').update({ [field]: value }).eq('id', id)
