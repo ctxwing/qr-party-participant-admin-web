@@ -51,5 +51,129 @@ supabase link --project-ref [PROJECT_ID]
 현재 프로젝트의 요구사항(닉네임 3회 제한, 1/2차 신청 상태 관리)을 반영하기 위해 `src/scripts/migration_full_spec.sql` 파일을 CLI를 통해 실행하여 DB 구조를 고도화하였습니다.
 
 ---
-**업데이트**: 2026-04-22
+
+## 4. Node.js pg 패키지를 사용한 직접 DB 수정 (2026-04-27 추가)
+
+### 개요
+Supabase CLI 인증 설정이 복잡할 때는 **Node.js pg 패키지를 사용한 직접 PostgreSQL 연결**을 사용합니다.
+
+### 필수 정보
+```
+PROJECT_REF: hlbgedbgycamzvbbykdc
+DATABASE_URL: postgresql://postgres.hlbgedbgycamzvbbykdc:%40Supabase01%40@aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres?sslmode=require
+SUPABASE_URL: https://hlbgedbgycamzvbbykdc.supabase.co
+Personal Access Token: 2_ctx/0_secret/Supabase 참조
+```
+
+### 실행 방법
+
+**Step 1: Node.js 스크립트 작성 (prj_source/frontend/ 디렉토리)**
+```javascript
+const { Pool } = require('pg');
+
+const pool = new Pool({
+  connectionString: 'postgresql://postgres.hlbgedbgycamzvbbykdc:%40Supabase01%40@aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres',
+  ssl: { rejectUnauthorized: false }  // 중요: SSL 인증서 오류 무시
+});
+
+async function setupDatabase() {
+  try {
+    const queries = [
+      // 여기에 SQL 쿼리 추가
+      'ALTER TABLE public.alerts ENABLE ROW LEVEL SECURITY;',
+      'CREATE POLICY "Allow admin to update alerts" ON public.alerts FOR UPDATE ...'
+    ];
+
+    for (const query of queries) {
+      await pool.query(query);
+      console.log('✅ 실행됨:', query.slice(0, 70));
+    }
+
+    // 결과 확인
+    const result = await pool.query('SELECT * FROM public.admin_users;');
+    console.log('결과:', result.rows);
+
+    await pool.end();
+  } catch (err) {
+    console.error('❌ 에러:', err.message);
+    process.exit(1);
+  }
+}
+
+setupDatabase();
+```
+
+**Step 2: 실행**
+```bash
+cd prj_source/frontend
+node << 'EOF'
+# 위 스크립트 붙여넣기
+EOF
+```
+
+### 실제 적용 예시
+
+#### A. RLS 정책 설정
+```sql
+ALTER TABLE public.alerts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow all users to update alerts" ON public.alerts;
+
+CREATE POLICY "Allow admin to update alerts"
+ON public.alerts FOR UPDATE
+USING (
+  current_setting('request.headers')::jsonb->>'x-admin-user-id'
+  IN (SELECT better_auth_user_id FROM public.admin_users)
+)
+WITH CHECK (
+  current_setting('request.headers')::jsonb->>'x-admin-user-id'
+  IN (SELECT better_auth_user_id FROM public.admin_users)
+);
+```
+
+#### B. admin_users 테이블 생성
+```sql
+CREATE TABLE IF NOT EXISTS public.admin_users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  better_auth_user_id TEXT NOT NULL UNIQUE,
+  email TEXT NOT NULL,
+  name TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+INSERT INTO public.admin_users (better_auth_user_id, email, name)
+VALUES ('yXPg3GolWNcpzg9nXOyq45A4MGQS104c', 'admin@gmail.com', 'Admin')
+ON CONFLICT (better_auth_user_id) DO NOTHING;
+```
+
+### ⚠️ 주의사항
+
+1. **SSL 오류 처리** (필수)
+   ```javascript
+   ssl: { rejectUnauthorized: false }
+   ```
+   AWS Supabase의 자체 서명 인증서 오류 무시
+
+2. **실행 위치**
+   - 반드시 `prj_source/frontend/` 디렉토리에서 실행
+   - pg 모듈이 설치된 디렉토리
+
+3. **CONNECTION STRING**
+   - Pooler 사용: `aws-1-ap-northeast-2.pooler.supabase.com:6543`
+   - 포트: `6543` (pooler) 또는 `5432` (direct)
+   - `sslmode=require` 필수
+
+### CLI vs Node.js 비교
+
+| 항목 | Supabase CLI | Node.js pg |
+|------|--------------|-----------|
+| 설정 복잡도 | 높음 (login, link) | 낮음 (CONNECTION STRING만) |
+| 인증 | Personal Access Token | CONNECTION STRING |
+| 속도 | 느림 (인증 과정) | 빠름 (직접 연결) |
+| 마이그레이션 | 우수 (db push/pull) | 수동 SQL 실행 |
+| 간단한 수정 | ❌ | ✅ 추천 |
+
+---
+**업데이트**: 2026-04-27 추가 (Node.js pg 방식)
+**원본 업데이트**: 2026-04-22
 **관리자**: Antigravity (AI)
