@@ -1,24 +1,27 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useStore } from '@/store/useStore'
 import { useRealtime } from '@/hooks/useRealtime'
+import { useSession } from '@/lib/auth-client'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { 
-  MessageCircle, 
-  Heart, 
-  Zap, 
-  AlertTriangle, 
-  Edit2, 
-  Clock, 
+import {
+  MessageCircle,
+  Heart,
+  Zap,
+  AlertTriangle,
+  Edit2,
+  Clock,
   Inbox,
   Music,
   Trophy,
-  Menu
+  Menu,
+  Loader
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
@@ -142,9 +145,13 @@ interface AnnouncementData {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const { data: session, isPending: sessionLoading } = useSession()
   const { participant, setParticipant } = useStore()
+  const [isRestoringSession, setIsRestoringSession] = useState(true)
+
   useRealtime(participant?.id)
-  
+
   const [participants, setParticipants] = useState<ParticipantInfo[]>([])
   const [stats, setStats] = useState({ messages: 0, cupid: 0, likes: 0 })
   const [sentStats, setSentStats] = useState({ hearts: 0, cupids: 0, messages: 0 })
@@ -152,7 +159,7 @@ export default function DashboardPage() {
   const [myMessages, setMyMessages] = useState<MessageItem[]>([])
   const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
   const [partyInfo, setPartyInfo] = useState<PartyInfo | null>(null);
-  
+
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = useState(false);
   const [newNickname, setNewNickname] = useState('');
@@ -167,8 +174,48 @@ export default function DashboardPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const supabase = createClient()
 
+  // ✓ Step 1: 세션 복구 (새로고침 후 participant 자동 복구)
+  useEffect(() => {
+    const restoreParticipant = async () => {
+      if (!sessionLoading && session?.user?.id) {
+        try {
+          // anonymous_id로 participant 조회
+          const { data, error } = await supabase
+            .from('participants')
+            .select('*')
+            .eq('anonymous_id', session.user.id)
+            .single()
+
+          if (data && !error) {
+            // useStore에 복구
+            setParticipant({
+              id: data.id,
+              nickname: data.nickname || '닉네임 없음',
+              nicknameChangeCount: data.nickname_change_count || 0
+            })
+          }
+        } catch (err) {
+          console.error('세션 복구 실패:', err)
+        }
+      }
+      setIsRestoringSession(false)
+    }
+
+    restoreParticipant()
+  }, [session, sessionLoading, supabase, setParticipant])
+
+  // ✓ Step 2: 인증 확인 (로그인 상태 아니면 리디렉트)
+  useEffect(() => {
+    if (!sessionLoading && !session) {
+      // 로그인 페이지로 리디렉트
+      router.replace('/login')
+      return
+    }
+  }, [session, sessionLoading, router])
+
   const fetchData = useCallback(async () => {
-    if (!participant?.id) return;
+    // ✓ participant 복구 완료 & 세션 유효할 때만 실행
+    if (!participant?.id || !session?.user?.id || isRestoringSession) return;
 
     // 1. 시스템 설정 (interaction limits)
     const { data: limitsData } = await supabase.from('system_settings').select('value').eq('key', 'interaction_limits').maybeSingle();
@@ -214,7 +261,7 @@ export default function DashboardPage() {
     const { count: sentMsgs } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('sender_id', participant.id);
 
     setSentStats({ hearts: sentHearts || 0, cupids: sentCupids || 0, messages: sentMsgs || 0 });
-  }, [participant, supabase]);
+  }, [participant, session, isRestoringSession, supabase]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Supabase Realtime 구독 패턴: 최초 로드 후 실시간 업데이트 수신
@@ -368,6 +415,16 @@ export default function DashboardPage() {
     setMessageContent('');
     setIsInteractionOpen(true);
   };
+
+  // ✓ Step 3: 로딩 상태 표시
+  if (sessionLoading || isRestoringSession) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center gap-4">
+        <Loader className="w-8 h-8 animate-spin text-indigo-400" />
+        <p className="text-zinc-400">사용자 정보 복구 중...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-4 pb-24 relative overflow-hidden">
