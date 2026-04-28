@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/store/useStore'
 import { useRealtime } from '@/hooks/useRealtime'
-import { useSession } from '@/lib/auth-client'
+import { useAuth } from '@/hooks/useAuth'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -146,7 +146,7 @@ interface AnnouncementData {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { data: session, isPending: sessionLoading } = useSession()
+  const { user, loading: sessionLoading } = useAuth()
   const { participant, setParticipant } = useStore()
   const [isRestoringSession, setIsRestoringSession] = useState(true)
 
@@ -177,13 +177,13 @@ export default function DashboardPage() {
   // ✓ Step 1: 세션 복구 (새로고침 후 participant 자동 복구)
   useEffect(() => {
     const restoreParticipant = async () => {
-      if (!sessionLoading && session?.user?.id) {
+      if (!sessionLoading && user?.id) {
         try {
           // anonymous_id로 participant 조회
           const { data, error } = await supabase
             .from('participants')
             .select('*')
-            .eq('anonymous_id', session.user.id)
+            .eq('anonymous_id', user.id)
             .single()
 
           if (data && !error) {
@@ -202,20 +202,19 @@ export default function DashboardPage() {
     }
 
     restoreParticipant()
-  }, [session, sessionLoading, supabase, setParticipant])
+  }, [user, sessionLoading, supabase, setParticipant])
 
-  // ✓ Step 2: 인증 확인 (로그인 상태 아니면 리디렉트)
+  // ✓ Step 2: 인증 확인 (로그인 상태 아니면 랜딩 페이지로 리디렉트)
   useEffect(() => {
-    if (!sessionLoading && !session) {
-      // 로그인 페이지로 리디렉트
-      router.replace('/login')
+    if (!sessionLoading && !user) {
+      router.replace('/')
       return
     }
-  }, [session, sessionLoading, router])
+  }, [user, sessionLoading, router])
 
   const fetchData = useCallback(async () => {
     // ✓ participant 복구 완료 & 세션 유효할 때만 실행
-    if (!participant?.id || !session?.user?.id || isRestoringSession) return;
+    if (!participant?.id || !user?.id || isRestoringSession) return;
 
     // 1. 시스템 설정 (interaction limits)
     const { data: limitsData } = await supabase.from('system_settings').select('value').eq('key', 'interaction_limits').maybeSingle();
@@ -261,7 +260,7 @@ export default function DashboardPage() {
     const { count: sentMsgs } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('sender_id', participant.id);
 
     setSentStats({ hearts: sentHearts || 0, cupids: sentCupids || 0, messages: sentMsgs || 0 });
-  }, [participant, session, isRestoringSession, supabase]);
+  }, [participant, user, isRestoringSession, supabase]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Supabase Realtime 구독 패턴: 최초 로드 후 실시간 업데이트 수신

@@ -4,18 +4,20 @@ let adminUserIdGlobal: string | undefined = undefined
 
 export function setAdminUserId(userId: string | undefined) {
   adminUserIdGlobal = userId
-  console.log('🔐 Admin User ID 설정:', userId)
 }
 
+let clientSingleton: ReturnType<typeof createBrowserClient> | undefined = undefined
+
 export function createClient() {
-  const supabase = createBrowserClient(
+  if (clientSingleton) return clientSingleton
+
+  clientSingleton = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  // RLS 정책을 위한 custom header interceptor 추가
-  const originalFetch = supabase.fetch.bind(supabase)
-  supabase.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+  const originalFetch = clientSingleton.fetch.bind(clientSingleton)
+  clientSingleton.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const newInit = {
       ...init,
       headers: {
@@ -23,12 +25,8 @@ export function createClient() {
         'x-admin-user-id': adminUserIdGlobal || '',
       },
     }
-    console.log('📤 Supabase 요청:', {
-      url: typeof input === 'string' ? input.slice(0, 80) : input.toString(),
-      'x-admin-user-id': adminUserIdGlobal || '(없음)',
-    })
     return originalFetch(input, newInit)
   }
 
-  return supabase
+  return clientSingleton
 }
