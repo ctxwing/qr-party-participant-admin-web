@@ -5,13 +5,16 @@
 ---
 
 ## 🚀 프로젝트 개요
+
 - **목적**: 파티 현장의 분위기를 고조시키고 참여자 간의 매칭 및 소통을 실시간으로 지원.
 - **주요 타겟**: 파티 참가자 (모바일웹), 파티 운영진 (관리자 대시보드).
 - **핵심 가치**: 익명 기반의 빠른 참여, 실시간 상호작용, 긴급 SOS 대응.
+- 노션에 공개한 링크: https://www.notion.so/QR-Party-QR-MVP-350b2ab1af55812ea970c68485dd4ae5?source=copy_link
 
 ---
 
 ## 🛠 기술 스택
+
 - **Runtime**: Bun
 - **Framework**: Next.js 16.2.4 (App Router)
 - **React**: 19.2.4
@@ -64,6 +67,7 @@ qr-party-participant-admin-web/
 ## 📱 주요 기능
 
 ### 1. 참여자 (Mobile Web)
+
 - **익명 참여**: QR 스캔 시 별도 가입 없이 즉시 접속.
 - **닉네임 설정**: 닉네임 등록 및 변경 (최대 3회 제한).
 - **내 현황판**: 받은 쪽지, 큐피트, 호감도, 알림 개수 실시간 확인.
@@ -75,6 +79,7 @@ qr-party-participant-admin-web/
 - **현장 요청**: 노래 신청 및 긴급 SOS 요청 (플로팅 버튼).
 
 ### 2. 관리자 (Admin Console)
+
 - **세션 제어**: 파티 시작 및 종료 시간 설정, 남은 시간 실시간 동기화.
 - **참여자 관리**: 1/2차 신청 상태 관리, 잔여 횟수(큐피트/호감도) 수동 조정.
 - **실시간 모니터링**: 전체 쪽지 내용 및 참여자 활동 로그 실시간 관제.
@@ -87,6 +92,7 @@ qr-party-participant-admin-web/
 ## 🔑 접속 및 계정 정보
 
 ### 접속 경로
+
 - **참여자 메인**: `http://localhost:59500/`
 - **관리자 로그인**: `http://localhost:59500/admin/login`
 - **관리자 대시보드**: `http://localhost:59500/admin/dashboard`
@@ -95,43 +101,48 @@ qr-party-participant-admin-web/
 - **실시간 랭킹**: `http://localhost:59500/ranking`
 
 ### 관리자 로그인 정보
+
 - **이메일**: `admin@gmail.com`
 - **비밀번호**: `Admin1234!`
-> [!NOTE]
-> 해당 계정은 Better Auth + Supabase DB로 인증됩니다.
+  > [!NOTE]
+  > 해당 계정은 Better Auth + Supabase DB로 인증됩니다.
 
 ---
 
 ## 🗄️ 데이터베이스 (Supabase Cloud)
 
 ### 연결 정보
+
 - **리전**: ap-northeast-2 (서울)
 - **DB 버전**: PostgreSQL 17.6
 - **Pooler 연결**: `aws-1-ap-northeast-2.pooler.supabase.com:6543` (IPv4 호환, 권장)
 - **Direct 연결**: `db.*.supabase.co:5432` (IPv6 전용)
 
 ### 주요 테이블 (14개)
-| 테이블 | 용도 | RLS |
-|--------|------|-----|
-| `parties` | 파티 정보 및 설정 | ✅ |
-| `party_sessions` | 파티 세션 상태 | ✅ |
-| `participants` | 참여자 프로필 및 잔여 횟수 | ✅ |
-| `interactions` | 큐피드 및 호감도 상호작용 | ❌ |
-| `messages` | 익명 쪽지 | ✅ |
-| `alerts` | SOS 요청 및 노래 신청 | ✅ |
-| `announcements` | 실시간 공지 | ✅ |
-| `nickname_history` | 닉네임 변경 이력 | ✅ |
-| `system_settings` | 시스템 설정 (JSONB) | ✅ |
-| `admin_users` | 관리자 정보 | ❌ |
-| `user` | Better Auth 사용자 | ❌ |
-| `account` | Better Auth 계정 연동 | ❌ |
-| `session` | Better Auth 세션 | ❌ |
-| `verification` | Better Auth 인증 | ❌ |
+
+| 테이블             | 용도                       | RLS |
+| ------------------ | -------------------------- | --- |
+| `parties`          | 파티 정보 및 설정          | ✅  |
+| `party_sessions`   | 파티 세션 상태             | ✅  |
+| `participants`     | 참여자 프로필 및 잔여 횟수 | ✅  |
+| `interactions`     | 큐피드 및 호감도 상호작용  | ❌  |
+| `messages`         | 익명 쪽지                  | ✅  |
+| `alerts`           | SOS 요청 및 노래 신청      | ✅  |
+| `announcements`    | 실시간 공지                | ✅  |
+| `nickname_history` | 닉네임 변경 이력           | ✅  |
+| `system_settings`  | 시스템 설정 (JSONB)        | ✅  |
+| `admin_users`      | 관리자 정보                | ❌  |
+| `user`             | Better Auth 사용자         | ❌  |
+| `account`          | Better Auth 계정 연동      | ❌  |
+| `session`          | Better Auth 세션           | ❌  |
+| `verification`     | Better Auth 인증           | ❌  |
 
 ### Realtime 구독 (6개 테이블)
+
 `alerts`, `announcements`, `interactions`, `messages`, `participants`, `party_sessions`
 
 ### DB 백업
+
 - Supabase Cloud DB의 완전 백업은 `DB-backup-Supabase/` 디렉토리에 보관됩니다.
 - 백업 파일: 스키마 (`schema-full.sql`), 데이터 (`data.sql`), 역할 (`roles.sql`), 환경변수 (`env.local.backup`)
 - 백업/복원 가이드: [DB-backup-Supabase/README-백업-복원.md](DB-backup-Supabase/README-백업-복원.md)
@@ -141,12 +152,15 @@ qr-party-participant-admin-web/
 ## ⚙️ 실행 방법
 
 ### 1. 의존성 설치
+
 ```bash
 cd prj_source/frontend && bun install
 ```
 
 ### 2. 환경 변수 설정
+
 `prj_source/frontend/.env.local` 파일 생성 후 아래 항목 입력:
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
@@ -159,6 +173,7 @@ NEXT_PUBLIC_ENABLE_VIBRATION=ON
 ```
 
 ### 3. 개발 서버 실행
+
 ```bash
 # 기동 스크립트 사용 (권장)
 bash start.sh
@@ -168,6 +183,7 @@ cd prj_source/frontend && bun run dev --port 59500
 ```
 
 ### 4. Docker 빌드 (프로덕션)
+
 ```bash
 cd prj_source/frontend
 docker build -t qr-party .
@@ -177,82 +193,17 @@ docker run -p 3000:3000 qr-party
 ---
 
 ## 📝 구현 내역 및 갭 분석
-- 상세 구현 현황은 [3_prj_docs/03_완료내역/V1/260422-1850-requirement-gap-analysis.md](3_prj_docs/03_완료내역/V1/260422-1850-requirement-gap-analysis.md)에서 확인하실 수 있습니다.
+
+- 상세 구현 현황은 [3*prj_docs/03*완료내역/V1/260422-1850-requirement-gap-analysis.md](3_prj_docs/03_완료내역/V1/260422-1850-requirement-gap-analysis.md)에서 확인하실 수 있습니다.
 - 미구현 사항 (WP 연동 등)은 [3_prj_docs/미구현사항.md](3_prj_docs/미구현사항.md)에 정리되어 있습니다.
-- 문제 해결 내역은 [3_prj_docs/04_문제점해결내역/](3_prj_docs/04_문제점해결내역/)을 참조하세요.
+- 문제 해결 내역은 [3*prj_docs/04*문제점해결내역/](3_prj_docs/04_문제점해결내역/)을 참조하세요.
 
 ---
 
-## 📸 스크린샷 (참여자 모바일 화면)
+## 📸 스크린샷
 
-> iPhone 14 Pro (390×844) 기준 모바일 세로 화면 캡처
-
-### 랜딩 & 온보딩
-
-| <img src="3_prj_docs/screenshots/participants/01-landing-page.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/02-setup-nickname.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/03-setup-nickname-filled.png" width="250"/> |
-|:---:|:---:|:---:|
-| **랜딩 페이지** | **닉네임 설정 화면** | **닉네임 입력 완료** |
-
-### 대시보드
-
-| <img src="3_prj_docs/screenshots/participants/04-dashboard-main.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/05-dashboard-stats-cards.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/06-participant-list.png" width="250"/> |
-|:---:|:---:|:---:|
-| **대시보드 메인** | **스탯 카드 (Inbox/Hearts/Cupids)** | **참여자 목록** |
-
-### 상호작용 (바람남에게)
-
-| <img src="3_prj_docs/screenshots/participants/07-interaction-dialog.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/08-send-heart-to-baram.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/09-send-cupid-to-baram.png" width="250"/> |
-|:---:|:---:|:---:|
-| **상호작용 다이얼로그** | **호감(Heart) 보내기** | **큐피트(Cupid) 보내기** |
-
-| <img src="3_prj_docs/screenshots/participants/10-send-message-to-baram.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/11-message-inbox.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/12-nickname-edit-dialog.png" width="250"/> |
-|:---:|:---:|:---:|
-| **쪽지 보내기** | **쪽지 보관함** | **닉네임 수정 다이얼로그** |
-
-### 닉네임 변경 & SOS & 노래신청
-
-| <img src="3_prj_docs/screenshots/participants/13-nickname-changed.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/14-sos-dialog.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/15-music-request-dialog.png" width="250"/> |
-|:---:|:---:|:---:|
-| **닉네임 변경 완료** | **SOS 관리자 호출** | **노래 신청** |
-
-### 랭킹 & 사이드바 이력
-
-| <img src="3_prj_docs/screenshots/participants/16-ranking-page.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/17-sidebar-menu.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/18-sidebar-received-hearts.png" width="250"/> |
-|:---:|:---:|:---:|
-| **실시간 랭킹 (Hall of Fame)** | **사이드바 메뉴 (이력)** | **수신 호감 이력** |
-
----
-
-## 📸 스크린샷 (관리자 PC 화면)
-
-> PC 브라우저 (1440×900) 기준 관리자 콘솔 화면 캡처
-
-### 로그인 & 콘솔 메인
-
-| <img src="3_prj_docs/screenshots/admin/01-admin-login.png" width="400"/> | <img src="3_prj_docs/screenshots/admin/02-admin-console-main.png" width="400"/> |
+| <img src="3_prj_docs/screenshots/participants/01-landing-page.png" width="250"/> | <img src="3_prj_docs/screenshots/admin/01-admin-login.png" width="400"/> |
 |:---:|:---:|
-| **관리자 로그인** | **관리자 콘솔 메인 (현황판 탭)** |
+| **참여자 랜딩 페이지** (모바일) | **관리자 로그인** (PC) |
 
-### 현황판 - SOS/노래신청 처리
-
-| <img src="3_prj_docs/screenshots/admin/03-dashboard-tab-alerts.png" width="400"/> | <img src="3_prj_docs/screenshots/admin/04-sos-toggle-resolved.png" width="400"/> |
-|:---:|:---:|
-| **현황판 (통계 카드 + 요청 그리드)** | **SOS/노래신청 토글 스위치로 처리** |
-
-### 실시간 공지
-
-| <img src="3_prj_docs/screenshots/admin/05-announcements-tab.png" width="400"/> | <img src="3_prj_docs/screenshots/admin/06-announcement-compose.png" width="400"/> |
-|:---:|:---:|
-| **실시간 공지 탭 (이력)** | **공지 작성 및 발송** |
-
-### 참여자 관리
-
-| <img src="3_prj_docs/screenshots/admin/07-participants-tab.png" width="400"/> | <img src="3_prj_docs/screenshots/admin/08-participant-detail-popup.png" width="400"/> |
-|:---:|:---:|
-| **참여자 관리 탭 (AG Grid)** | **참여자 상세 정보 팝업** |
-
-### 쪽지 모니터링 & 시스템 설정
-
-| <img src="3_prj_docs/screenshots/admin/09-messages-tab.png" width="400"/> | <img src="3_prj_docs/screenshots/admin/10-settings-tab.png" width="400"/> |
-|:---:|:---:|
-| **참여자간 쪽지 모니터링** | **시스템 설정 탭** |
+> 전체 상세 화면 (참여자 18장 + 관리자 10장)은 **[README-Screenshot.md](README-Screenshot.md)** 를 참조하세요.
