@@ -13,11 +13,51 @@
 
 ## 🛠 기술 스택
 - **Runtime**: Bun
-- **Framework**: Next.js 16.2.1 (App Router)
-- **Database/BaaS**: Supabase (PostgreSQL, Auth, Realtime)
-- **Styling**: Tailwind CSS, shadcn/ui
-- **Animation**: React Bits (Ranking UI)
-- **State Management**: React Hooks, Supabase Realtime Subscription
+- **Framework**: Next.js 16.2.4 (App Router)
+- **React**: 19.2.4
+- **Database**: Supabase Cloud (PostgreSQL 17) — ap-northeast-2 (서울)
+- **ORM**: Drizzle ORM
+- **Auth**: Better Auth (관리자 인증)
+- **Styling**: Tailwind CSS v4, shadcn/ui, 글래스모피즘 (Dark 모드 기본)
+- **Animation**: Framer Motion
+- **State Management**: Zustand, React Hooks, Supabase Realtime Subscription
+- **Data Grid**: AG Grid (관리자 대시보드)
+- **Icons**: Lucide React
+- **Toast**: Sonner
+- **Theme**: next-themes (다크/라이트)
+- **QR Code**: qrcode.react
+- **Font**: Outfit (Google Fonts)
+
+---
+
+## 📁 프로젝트 구조
+
+```
+qr-party-participant-admin-web/
+├── prj_source/
+│   ├── frontend/              # Next.js 앱 (메인 소스코드)
+│   │   ├── src/
+│   │   │   ├── app/           # App Router 페이지 및 API 라우트
+│   │   │   ├── components/    # React 컴포넌트 (admin/, dashboard/, ui/)
+│   │   │   ├── hooks/         # 커스텀 훅
+│   │   │   ├── lib/           # 유틸리티, DB 스키마, Supabase 클라이언트
+│   │   │   ├── store/         # Zustand 상태관리
+│   │   │   ├── proxy.ts       # Next.js 미들웨어 (관리자 인증 보호)
+│   │   │   └── scripts/       # DB 마이그레이션/시딩 스크립트
+│   │   ├── supabase/          # Supabase 설정 및 마이그레이션
+│   │   └── Dockerfile         # 멀티스테이지 Docker 빌드
+│   └── database/              # Drizzle 스키마 (독립 패키지)
+├── DB-backup-Supabase/        # Supabase Cloud DB 완전 백업
+│   ├── schema-full.sql        # 스키마 DDL + RLS 정책 + 권한
+│   ├── data.sql               # 전체 데이터 (auth + public + storage)
+│   ├── roles.sql              # DB 역할 정의
+│   ├── env.local.backup       # 환경변수 백업
+│   └── README-백업-복원.md     # 백업/복원 가이드
+├── 3_prj_docs/                # 프로젝트 산출물 (완료내역, 화면설계, 문제해결 등)
+├── 2_ctx/                     # 컨텍스트/참고 문서
+├── 1_prd/                     # 제품 요구사항 문서
+└── start.sh                   # 개발 서버 기동 스크립트
+```
 
 ---
 
@@ -36,57 +76,183 @@
 
 ### 2. 관리자 (Admin Console)
 - **세션 제어**: 파티 시작 및 종료 시간 설정, 남은 시간 실시간 동기화.
-- **참여자 관리**: 1/2차 신청 상태 관리, 2차 미신청자 필터링, 잔여 횟수(큐피트/호감도) 수동 조정.
+- **참여자 관리**: 1/2차 신청 상태 관리, 잔여 횟수(큐피트/호감도) 수동 조정.
 - **실시간 모니터링**: 전체 쪽지 내용 및 참여자 활동 로그 실시간 관제.
 - **긴급 대응**: SOS 요청 발생 시 사운드 알림 및 즉각 해결 기능.
+- **공지 관리**: 실시간 공지 발송 (정보/긴급/공지 유형).
+- **QR 코드 관리**: 파티별 QR 코드 생성 및 설정.
 
 ---
 
 ## 🔑 접속 및 계정 정보
 
 ### 접속 경로
-- **참여자 메인**: `http://localhost:58100/`
-- **관리자 페이지**: `http://localhost:58100/admin`
-- **실시간 랭킹**: `http://localhost:58100/ranking`
+- **참여자 메인**: `http://localhost:59500/`
+- **관리자 로그인**: `http://localhost:59500/admin/login`
+- **관리자 대시보드**: `http://localhost:59500/admin/dashboard`
+- **파티 관리**: `http://localhost:59500/admin/parties`
+- **QR 코드 설정**: `http://localhost:59500/admin/settings/qr`
+- **실시간 랭킹**: `http://localhost:59500/ranking`
 
 ### 관리자 로그인 정보
-- **이메일**: `admin@example.com`
+- **이메일**: `admin@gmail.com`
 - **비밀번호**: `Admin1234!`
 > [!NOTE]
-> 해당 계정 정보는 Supabase Auth에 사전에 등록되어 있어야 합니다.
+> 해당 계정은 Better Auth + Supabase DB로 인증됩니다.
 
 ---
 
-## 🗄️ 데이터베이스 (Supabase)
-프로젝트는 다음과 같은 주요 테이블로 구성됩니다:
-- `party_sessions`: 파티 상태 및 타이머 정보.
-- `participants`: 참여자 프로필 및 신청 상태, 잔여 횟수.
-- `messages`: 익명 쪽지 데이터.
-- `interactions`: 큐피트 및 호감도 로그.
-- `alerts`: SOS 요청 및 노래 신청 내역.
+## 🗄️ 데이터베이스 (Supabase Cloud)
+
+### 연결 정보
+- **리전**: ap-northeast-2 (서울)
+- **DB 버전**: PostgreSQL 17.6
+- **Pooler 연결**: `aws-1-ap-northeast-2.pooler.supabase.com:6543` (IPv4 호환, 권장)
+- **Direct 연결**: `db.*.supabase.co:5432` (IPv6 전용)
+
+### 주요 테이블 (14개)
+| 테이블 | 용도 | RLS |
+|--------|------|-----|
+| `parties` | 파티 정보 및 설정 | ✅ |
+| `party_sessions` | 파티 세션 상태 | ✅ |
+| `participants` | 참여자 프로필 및 잔여 횟수 | ✅ |
+| `interactions` | 큐피드 및 호감도 상호작용 | ❌ |
+| `messages` | 익명 쪽지 | ✅ |
+| `alerts` | SOS 요청 및 노래 신청 | ✅ |
+| `announcements` | 실시간 공지 | ✅ |
+| `nickname_history` | 닉네임 변경 이력 | ✅ |
+| `system_settings` | 시스템 설정 (JSONB) | ✅ |
+| `admin_users` | 관리자 정보 | ❌ |
+| `user` | Better Auth 사용자 | ❌ |
+| `account` | Better Auth 계정 연동 | ❌ |
+| `session` | Better Auth 세션 | ❌ |
+| `verification` | Better Auth 인증 | ❌ |
+
+### Realtime 구독 (6개 테이블)
+`alerts`, `announcements`, `interactions`, `messages`, `participants`, `party_sessions`
+
+### DB 백업
+- Supabase Cloud DB의 완전 백업은 `DB-backup-Supabase/` 디렉토리에 보관됩니다.
+- 백업 파일: 스키마 (`schema-full.sql`), 데이터 (`data.sql`), 역할 (`roles.sql`), 환경변수 (`env.local.backup`)
+- 백업/복원 가이드: [DB-backup-Supabase/README-백업-복원.md](DB-backup-Supabase/README-백업-복원.md)
 
 ---
 
 ## ⚙️ 실행 방법
 
-1. **의존성 설치**
-   ```bash
-   bun install
-   ```
+### 1. 의존성 설치
+```bash
+cd prj_source/frontend && bun install
+```
 
-2. **환경 변수 설정**
-   `.env.local` 파일을 생성하고 Supabase URL 및 Key를 입력합니다.
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_project_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-   ```
+### 2. 환경 변수 설정
+`prj_source/frontend/.env.local` 파일 생성 후 아래 항목 입력:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+DATABASE_URL=postgresql://postgres.project_ref:password@pooler.supabase.com:6543/postgres
+BETTER_AUTH_SECRET=your_secret
+BETTER_AUTH_URL=http://localhost:59500
+NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:59500
+NEXT_PUBLIC_ENABLE_VIBRATION=ON
+```
 
-3. **개발 서버 실행**
-   ```bash
-   bun run dev
-   ```
+### 3. 개발 서버 실행
+```bash
+# 기동 스크립트 사용 (권장)
+bash start.sh
+
+# 또는 수동 기동
+cd prj_source/frontend && bun run dev --port 59500
+```
+
+### 4. Docker 빌드 (프로덕션)
+```bash
+cd prj_source/frontend
+docker build -t qr-party .
+docker run -p 3000:3000 qr-party
+```
 
 ---
 
 ## 📝 구현 내역 및 갭 분석
-- 상세 구현 현황은 [3_prj_docs/03_완료내역/260422-1850-requirement-gap-analysis.md](3_prj_docs/03_완료내역/260422-1850-requirement-gap-analysis.md)에서 확인하실 수 있습니다.
+- 상세 구현 현황은 [3_prj_docs/03_완료내역/V1/260422-1850-requirement-gap-analysis.md](3_prj_docs/03_완료내역/V1/260422-1850-requirement-gap-analysis.md)에서 확인하실 수 있습니다.
+- 미구현 사항 (WP 연동 등)은 [3_prj_docs/미구현사항.md](3_prj_docs/미구현사항.md)에 정리되어 있습니다.
+- 문제 해결 내역은 [3_prj_docs/04_문제점해결내역/](3_prj_docs/04_문제점해결내역/)을 참조하세요.
+
+---
+
+## 📸 스크린샷 (참여자 모바일 화면)
+
+> iPhone 14 Pro (390×844) 기준 모바일 세로 화면 캡처
+
+### 랜딩 & 온보딩
+
+| <img src="3_prj_docs/screenshots/participants/01-landing-page.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/02-setup-nickname.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/03-setup-nickname-filled.png" width="250"/> |
+|:---:|:---:|:---:|
+| **랜딩 페이지** | **닉네임 설정 화면** | **닉네임 입력 완료** |
+
+### 대시보드
+
+| <img src="3_prj_docs/screenshots/participants/04-dashboard-main.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/05-dashboard-stats-cards.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/06-participant-list.png" width="250"/> |
+|:---:|:---:|:---:|
+| **대시보드 메인** | **스탯 카드 (Inbox/Hearts/Cupids)** | **참여자 목록** |
+
+### 상호작용 (바람남에게)
+
+| <img src="3_prj_docs/screenshots/participants/07-interaction-dialog.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/08-send-heart-to-baram.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/09-send-cupid-to-baram.png" width="250"/> |
+|:---:|:---:|:---:|
+| **상호작용 다이얼로그** | **호감(Heart) 보내기** | **큐피트(Cupid) 보내기** |
+
+| <img src="3_prj_docs/screenshots/participants/10-send-message-to-baram.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/11-message-inbox.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/12-nickname-edit-dialog.png" width="250"/> |
+|:---:|:---:|:---:|
+| **쪽지 보내기** | **쪽지 보관함** | **닉네임 수정 다이얼로그** |
+
+### 닉네임 변경 & SOS & 노래신청
+
+| <img src="3_prj_docs/screenshots/participants/13-nickname-changed.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/14-sos-dialog.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/15-music-request-dialog.png" width="250"/> |
+|:---:|:---:|:---:|
+| **닉네임 변경 완료** | **SOS 관리자 호출** | **노래 신청** |
+
+### 랭킹 & 사이드바 이력
+
+| <img src="3_prj_docs/screenshots/participants/16-ranking-page.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/17-sidebar-menu.png" width="250"/> | <img src="3_prj_docs/screenshots/participants/18-sidebar-received-hearts.png" width="250"/> |
+|:---:|:---:|:---:|
+| **실시간 랭킹 (Hall of Fame)** | **사이드바 메뉴 (이력)** | **수신 호감 이력** |
+
+---
+
+## 📸 스크린샷 (관리자 PC 화면)
+
+> PC 브라우저 (1440×900) 기준 관리자 콘솔 화면 캡처
+
+### 로그인 & 콘솔 메인
+
+| <img src="3_prj_docs/screenshots/admin/01-admin-login.png" width="400"/> | <img src="3_prj_docs/screenshots/admin/02-admin-console-main.png" width="400"/> |
+|:---:|:---:|
+| **관리자 로그인** | **관리자 콘솔 메인 (현황판 탭)** |
+
+### 현황판 - SOS/노래신청 처리
+
+| <img src="3_prj_docs/screenshots/admin/03-dashboard-tab-alerts.png" width="400"/> | <img src="3_prj_docs/screenshots/admin/04-sos-toggle-resolved.png" width="400"/> |
+|:---:|:---:|
+| **현황판 (통계 카드 + 요청 그리드)** | **SOS/노래신청 토글 스위치로 처리** |
+
+### 실시간 공지
+
+| <img src="3_prj_docs/screenshots/admin/05-announcements-tab.png" width="400"/> | <img src="3_prj_docs/screenshots/admin/06-announcement-compose.png" width="400"/> |
+|:---:|:---:|
+| **실시간 공지 탭 (이력)** | **공지 작성 및 발송** |
+
+### 참여자 관리
+
+| <img src="3_prj_docs/screenshots/admin/07-participants-tab.png" width="400"/> | <img src="3_prj_docs/screenshots/admin/08-participant-detail-popup.png" width="400"/> |
+|:---:|:---:|
+| **참여자 관리 탭 (AG Grid)** | **참여자 상세 정보 팝업** |
+
+### 쪽지 모니터링 & 시스템 설정
+
+| <img src="3_prj_docs/screenshots/admin/09-messages-tab.png" width="400"/> | <img src="3_prj_docs/screenshots/admin/10-settings-tab.png" width="400"/> |
+|:---:|:---:|
+| **참여자간 쪽지 모니터링** | **시스템 설정 탭** |
